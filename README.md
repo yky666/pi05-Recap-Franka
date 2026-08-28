@@ -1,6 +1,10 @@
 # pi05-Recap-Franka
 
-本仓库用于 **Franka 真机上测 OpenPI + RECAP 模型在 5 个任务上的成功率 SR**。
+本仓库用于 **单臂 Franka 真机上测 OpenPI + RECAP 模型在任务上的成功率 SR**。当前默认实验协议是每个 task 跑 30 次：
+
+```text
+SR = successes / 30
+```
 
 先把结论说清楚：目前从公开的 RLinf 源码、RLinf 官方 RECAP 文档和 OpenPI 文档看，代码里实际可运行的名字是 `pi05` / `pi0_5` / `pi0.5`。因此本项目按 **pi0.5 + RECAP + Franka** 执行；如果师兄后续给了私有 checkpoint 或 config diff，再把对应差异补进来。
 
@@ -23,6 +27,7 @@ RLinf 推荐关注的日志指标是：
 
 - `README.md`：本文件，具体部署和实验流程。
 - `PI05_RECAP_FRANKA_NOTES.md`：pi05 代码地图、外部链接状态和实验注意事项。
+- `docs/PI06_RECAP_MECHANISM_AND_PLAN.md`：可直接贴到飞书的 pi06/RECAP 机制、pi05 torch 区别和单臂 Franka 30 次 SR 计划。
 - `docs/UPSTREAM_RLINF_README.md`：原始 RLinf README 备份。
 - `scripts/franka/download_shuo_pi05_weights.sh`：下载师兄给的 Franka pi0.5 联合微调权重。
 - `evaluations/realworld/realworld_pnp_eval_pi05_sft_RTC.yaml`：单臂 Franka + OpenPI pi0.5 + RTC 测评模板。
@@ -43,14 +48,14 @@ RLinf 推荐关注的日志指标是：
 
 | 项 | 需要确认的内容 |
 | --- | --- |
-| 机器人 | 单臂 Franka 还是双臂 Franka |
+| 机器人 | 当前按单臂 Franka |
 | 5 个 task | 每个任务名称、自然语言 prompt、初始摆放、成功标准 |
 | checkpoint | RECAP 后策略 checkpoint 路径 |
 | 模型名 | 公开 `pi05/pi0.5`，或内部微调 checkpoint |
 | action interface | `pi05_franka_pnp` / `pi05_franka_state` / `pi05_dualfranka_tcp_rot6d` |
 | 摄像头 | camera serials、主视角 key |
 | 夹爪 | Franka hand / Robotiq |
-| 试验次数 | 每个 task 跑多少次，比如 10/20/30 |
+| 试验次数 | 每个 task 30 次 |
 | 记录方式 | 是否保存视频、是否导出 LeRobot rollout 数据 |
 
 ## 1. 克隆仓库

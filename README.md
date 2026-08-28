@@ -24,7 +24,10 @@ RLinf 推荐关注的日志指标是：
 - `README.md`：本文件，具体部署和实验流程。
 - `PI05_RECAP_FRANKA_NOTES.md`：pi05 代码地图、外部链接状态和实验注意事项。
 - `docs/UPSTREAM_RLINF_README.md`：原始 RLinf README 备份。
+- `scripts/franka/download_shuo_pi05_weights.sh`：下载师兄给的 Franka pi0.5 联合微调权重。
 - `evaluations/realworld/realworld_pnp_eval_pi05_sft_RTC.yaml`：单臂 Franka + OpenPI pi0.5 + RTC 测评模板。
+- `evaluations/realworld/franka_5tasks/task01.yaml`：`stack_bowls_in_size_order_rc` 测评模板。
+- `evaluations/realworld/franka_5tasks/task02.yaml`：`place_ring_on_rod_rc_0810` 测评模板。
 - `examples/embodiment/config/realworld_eval_dual_franka.yaml`：双臂 Franka 测评模板。
 - `examples/offline_rl/config/recap_*.yaml`：RECAP 离线训练 4 个阶段配置。
 - `toolkits/realworld_check/`：真机、相机、夹爪、GELLO/PICO 检查脚本。
@@ -116,7 +119,7 @@ pip install -e .
 
 最终测评至少需要：
 
-- 策略 checkpoint：例如 `/data/yangky/checkpoints/pi05_recap_franka/global_step_XXXX`
+- 策略 checkpoint：例如师兄给的 `sft_franka_shuo_pi05/global_step_15000` 联合微调权重
 - 与训练数据匹配的 OpenPI normalization stats
 - 与 checkpoint 匹配的 OpenPI config name
 
@@ -127,6 +130,51 @@ pip install -e .
 - 双臂 TCP rot6d：`pi05_dualfranka_tcp_rot6d`
 
 不要把模型权重、数据集、机器人 IP、相机 serial、飞书密码等提交到 git。
+
+### 3.1 下载师兄给的联合微调权重
+
+师兄给的权重来自 Hugging Face：
+
+```text
+https://huggingface.co/JianZhangAI/Real-RL/resolve/main/franka/rlinf/sft_franka_shuo_pi05/checkpoints/global_step_15000/actor/model_state_dict/full_weights.pt
+```
+
+我检查到这个文件可以公开访问，大小约 12.4 GiB。仓库里只提交下载脚本，不提交权重文件。
+
+```bash
+cd /data/yangky/test/pi05-Recap-Franka
+bash scripts/franka/download_shuo_pi05_weights.sh
+```
+
+默认下载到：
+
+```text
+checkpoints/sft_franka_shuo_pi05/checkpoints/global_step_15000/actor/model_state_dict/full_weights.pt
+```
+
+如果要放到别的目录：
+
+```bash
+bash scripts/franka/download_shuo_pi05_weights.sh /data/yangky/checkpoints/sft_franka_shuo_pi05/checkpoints/global_step_15000/actor/model_state_dict
+```
+
+注意这个 Hugging Face 路径只包含 `full_weights.pt`，没有 OpenPI assets / norm stats。因此部署时：
+
+- `runner.ckpt_path` 指向这个 `full_weights.pt`。
+- `rollout.model.model_path` 和 `actor.model.model_path` 指向本地 pi0.5 Franka base/assets 目录，或一个包含可用 assets/norm stats 的 checkpoint 目录。
+- 当前两个任务模板默认使用 `pi05_franka_pnp`，对应 assets 默认路径是 `checkpoints/torch/pi05_franka_pnp/assets`。
+
+### 3.2 已知两个微调任务
+
+根据师兄给的截图，当前联合权重至少覆盖两个任务：
+
+| Task YAML | Task id / prompt | 默认 checkpoint |
+| --- | --- | --- |
+| `task01.yaml` | `stack_bowls_in_size_order_rc` | `sft_franka_shuo_pi05/global_step_15000` |
+| `task02.yaml` | `place_ring_on_rod_rc_0810` | `sft_franka_shuo_pi05/global_step_15000` |
+
+如果实际训练时用的是自然语言 prompt，而不是上表的 task id 字符串，需要把
+`env.eval.override_cfg.task_description` 改成训练数据里完全一致的文本。
 
 ## 4. 配置 5 个任务的 eval YAML
 
@@ -181,15 +229,22 @@ env:
 
 rollout:
   model:
-    model_path: /path/to/pi05_recap_or_internal_checkpoint
+    model_path: /path/to/pi05_franka_pnp_base_or_assets_checkpoint
     openpi:
       config_name: "pi05_franka_pnp"
 
 actor:
   model:
-    model_path: /path/to/pi05_recap_or_internal_checkpoint
+    model_path: /path/to/pi05_franka_pnp_base_or_assets_checkpoint
     openpi:
       config_name: "pi05_franka_pnp"
+```
+
+对师兄给的 `full_weights.pt`，同时设置：
+
+```yaml
+runner:
+  ckpt_path: checkpoints/sft_franka_shuo_pi05/checkpoints/global_step_15000/actor/model_state_dict/full_weights.pt
 ```
 
 如果任务需要语言 prompt，且对应 env 支持 `task_description`，加到：
@@ -323,8 +378,9 @@ python evaluations/eval_embodied_agent.py \
   --config-path evaluations/realworld/franka_5tasks \
   --config-name task01 \
   runner.logger.log_path="${REPO_PATH}/logs/franka_5tasks/task01/$(date +%Y%m%d-%H%M%S)" \
-  rollout.model.model_path=/path/to/checkpoint \
-  actor.model.model_path=/path/to/checkpoint \
+  runner.ckpt_path="${REPO_PATH}/checkpoints/sft_franka_shuo_pi05/checkpoints/global_step_15000/actor/model_state_dict/full_weights.pt" \
+  rollout.model.model_path=/path/to/pi05_franka_pnp_base_or_assets_checkpoint \
+  actor.model.model_path=/path/to/pi05_franka_pnp_base_or_assets_checkpoint \
   cluster.node_groups.1.hardware.configs.0.robot_ip=<robot_ip>
 ```
 
@@ -487,6 +543,8 @@ git rev-parse HEAD
 ## 参考链接
 
 - RLinf upstream: `https://github.com/RLinf/RLinf`
+- RealWorld-RLinf reference repo: `https://github.com/1018weijia/RealWorld-RLinf`
+- JianZhangAI Real-RL Franka weights: `https://huggingface.co/JianZhangAI/Real-RL`
 - RLinf RECAP docs: `https://rlinf.readthedocs.io/en/latest/rst_source/examples/embodied/recap.html`
 - RLinf Franka docs: `https://rlinf.readthedocs.io/en/latest/rst_source/examples/embodied/franka.html`
 - OpenPI: `https://github.com/Physical-Intelligence/openpi`

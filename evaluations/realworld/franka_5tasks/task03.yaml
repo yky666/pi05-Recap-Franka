@@ -163,7 +163,7 @@ rollout:
   pipeline_stage_num: 1
 
   model:
-    model_path: /path/to/pi05_or_pi06_recap_checkpoint
+    model_path: /path/to/pi05_recap_or_internal_checkpoint
     model_type: "openpi"
     precision: ${actor.model.precision}
     add_value_head: False
@@ -193,7 +193,7 @@ actor:
   enable_offload: False
 
   model:
-    model_path: /path/to/pi05_or_pi06_recap_checkpoint
+    model_path: /path/to/pi05_recap_or_internal_checkpoint
     model_type: "openpi"
     add_value_head: False
     num_action_chunks: 5

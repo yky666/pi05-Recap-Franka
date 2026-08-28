@@ -24,6 +24,9 @@ Working interpretation for this repo:
 
 - RLinf upstream source: `https://github.com/RLinf/RLinf.git`
 - Target repo: `https://github.com/yky666/pi05-Recap-Franka.git`
+- RealWorld-RLinf reference repo: `https://github.com/1018weijia/RealWorld-RLinf.git`
+- Checked RealWorld-RLinf commit: `9e799e25cbcfd70b3b5e03f79f3c1c0ffdad4bab`
+- JianZhangAI Real-RL Franka SFT weights: `https://huggingface.co/JianZhangAI/Real-RL`
 - RLinf RECAP docs: `https://rlinf.readthedocs.io/en/latest/rst_source/examples/embodied/recap.html`
 - RLinf real-world Franka docs: `https://rlinf.readthedocs.io/en/latest/rst_source/examples/embodied/franka.html`
 - OpenPI source/docs: `https://github.com/Physical-Intelligence/openpi`
@@ -35,7 +38,14 @@ Working interpretation for this repo:
 Access status from this environment:
 
 - The two Feishu pages require browser/login access, so their page content was not directly readable here.
-- The two teacher-provided GitHub repositories returned `Repository not found`, likely because they are private or require GitHub credentials with access.
+- `jianzhang96/rlt-openpi` still returns `Repository not found` from this machine,
+  likely because it is private or requires a different GitHub account.
+- `RealWorld-RLinf` is now accessible from this machine. The checked Franka eval
+  files match this repository's realworld eval templates; this repository keeps
+  the extra `evaluations/realworld/franka_5tasks/` templates for our SR runs.
+- `RealWorld-RLinf/toolkits/inference` contains Cobot/Dobot HTTP inference
+  servers. It was not migrated into this Franka repo because the current Franka
+  deployment path is RLinf Ray eval, not the Cobot/Dobot HTTP API.
 
 ## Main Code Paths
 

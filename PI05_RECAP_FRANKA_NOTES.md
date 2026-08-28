@@ -1,29 +1,29 @@
-# PI06 / RECAP / Franka Code Map
+# PI05 / RECAP / Franka Code Map
 
 This repository is initialized from `https://github.com/RLinf/RLinf.git` for the Franka experiments that evaluate an OpenPI RECAP policy on real-world Franka tasks and compute success rate (SR).
 
 ## Current Model Naming Conclusion
 
-Based on the RLinf source tree and the public RLinf/OpenPI documentation checked on 2026-08-27, the implementation is currently `pi05` / `pi0_5` / `pi0.5` RECAP, not a literal `pi06` RECAP implementation.
+Based on the RLinf source tree and the public RLinf/OpenPI documentation checked on 2026-08-27, the implementation is currently `pi05` / `pi0_5` / `pi0.5` RECAP.
 
 Evidence:
 
 - RLinf RECAP documentation says the RECAP pipeline improves a `pi0.5` policy and uses OpenPI `pi0.5` for CFG training.
 - RLinf RECAP configs use `model_type: "pi05"` and `model/pi0_5`.
 - RLinf Franka / real-world eval configs use `config_name` values such as `pi05_franka_pnp`, `pi05_franka_state`, and `pi05_dualfranka_tcp_rot6d`.
-- Physical Intelligence `openpi` public documentation announces `pi05` as the upgraded version of `pi0`; no public `pi06` model/config name was found in the checked repos/docs.
-- A repository-wide search in the cloned RLinf source found no `pi06`, `pi0_6`, or `pi0.6` config/model entry.
+- Physical Intelligence `openpi` public documentation announces `pi05` as the upgraded version of `pi0`.
+- A repository-wide search in the cloned RLinf source found the runnable Franka/OpenPI path under `pi05`, `pi0_5`, and `pi0.5` naming.
 
 Working interpretation for this repo:
 
-- Keep the GitHub repo name `pi06-Recap-Franka` because that is the project label from the group.
-- Treat the runnable code path as `pi05/pi0.5 + RECAP + Franka` unless a separate private `pi06` checkpoint/config is later provided.
-- If the team uses `pi06` as an internal nickname for a pi0.5-derived RECAP checkpoint, document the checkpoint path and config diff here before running SR.
+- Keep the GitHub repo name `pi05-Recap-Franka`.
+- Treat the runnable code path as `pi05/pi0.5 + RECAP + Franka`.
+- If the team provides a private checkpoint/config diff, document the checkpoint path and config diff here before running SR.
 
 ## External References
 
 - RLinf upstream source: `https://github.com/RLinf/RLinf.git`
-- Target repo: `https://github.com/yky666/pi06-Recap-Franka.git`
+- Target repo: `https://github.com/yky666/pi05-Recap-Franka.git`
 - RLinf RECAP docs: `https://rlinf.readthedocs.io/en/latest/rst_source/examples/embodied/recap.html`
 - RLinf real-world Franka docs: `https://rlinf.readthedocs.io/en/latest/rst_source/examples/embodied/franka.html`
 - OpenPI source/docs: `https://github.com/Physical-Intelligence/openpi`

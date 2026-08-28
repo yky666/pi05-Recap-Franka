@@ -1,8 +1,8 @@
-# pi06-Recap-Franka
+# pi05-Recap-Franka
 
 本仓库用于 **Franka 真机上测 OpenPI + RECAP 模型在 5 个任务上的成功率 SR**。
 
-先把结论说清楚：目前从公开的 RLinf 源码、RLinf 官方 RECAP 文档和 OpenPI 文档看，代码里实际可运行的名字是 `pi05` / `pi0_5` / `pi0.5`，没有找到字面量 `pi06`、`pi0_6`、`pi0.6` 的模型或配置。因此本项目仓库名继续叫 `pi06-Recap-Franka`，但当前部署和测评流程先按 **pi0.5 + RECAP + Franka** 执行；如果师兄后续给了私有 `pi06` checkpoint 或 config diff，再把对应差异补进来。
+先把结论说清楚：目前从公开的 RLinf 源码、RLinf 官方 RECAP 文档和 OpenPI 文档看，代码里实际可运行的名字是 `pi05` / `pi0_5` / `pi0.5`。因此本项目按 **pi0.5 + RECAP + Franka** 执行；如果师兄后续给了私有 checkpoint 或 config diff，再把对应差异补进来。
 
 ## 目标
 
@@ -22,7 +22,7 @@ RLinf 推荐关注的日志指标是：
 ## 关键文件
 
 - `README.md`：本文件，具体部署和实验流程。
-- `PI06_RECAP_FRANKA_NOTES.md`：pi05/pi06 判断依据、代码地图、外部链接状态。
+- `PI05_RECAP_FRANKA_NOTES.md`：pi05 代码地图、外部链接状态和实验注意事项。
 - `docs/UPSTREAM_RLINF_README.md`：原始 RLinf README 备份。
 - `evaluations/realworld/realworld_pnp_eval_pi05_sft_RTC.yaml`：单臂 Franka + OpenPI pi0.5 + RTC 测评模板。
 - `examples/embodiment/config/realworld_eval_dual_franka.yaml`：双臂 Franka 测评模板。
@@ -43,7 +43,7 @@ RLinf 推荐关注的日志指标是：
 | 机器人 | 单臂 Franka 还是双臂 Franka |
 | 5 个 task | 每个任务名称、自然语言 prompt、初始摆放、成功标准 |
 | checkpoint | RECAP 后策略 checkpoint 路径 |
-| 模型名 | 是公开 `pi05/pi0.5`，还是内部 `pi06` 变体 |
+| 模型名 | 公开 `pi05/pi0.5`，或内部微调 checkpoint |
 | action interface | `pi05_franka_pnp` / `pi05_franka_state` / `pi05_dualfranka_tcp_rot6d` |
 | 摄像头 | camera serials、主视角 key |
 | 夹爪 | Franka hand / Robotiq |
@@ -53,15 +53,15 @@ RLinf 推荐关注的日志指标是：
 ## 1. 克隆仓库
 
 ```bash
-cd /mnt/data/yangky/test
-git clone https://github.com/yky666/pi06-Recap-Franka.git
-cd pi06-Recap-Franka
+cd /data/yangky/test
+git clone https://github.com/yky666/pi05-Recap-Franka.git
+cd pi05-Recap-Franka
 ```
 
 如果本地已经有仓库：
 
 ```bash
-cd /mnt/data/yangky/test/pi06-Recap-Franka
+cd /data/yangky/test/pi05-Recap-Franka
 git pull
 ```
 
@@ -77,7 +77,7 @@ RLinf 真机 Franka 通常分两类节点：
 Docker 方式：
 
 ```bash
-cd /mnt/data/yangky/test/pi06-Recap-Franka
+cd /data/yangky/test/pi05-Recap-Franka
 
 docker run -it --rm --gpus all \
   --shm-size 20g \
@@ -93,7 +93,7 @@ source switch_env openpi
 本地 venv 方式：
 
 ```bash
-cd /mnt/data/yangky/test/pi06-Recap-Franka
+cd /data/yangky/test/pi05-Recap-Franka
 bash requirements/install.sh embodied --model openpi --env franka
 source .venv/bin/activate
 pip install -e .
@@ -104,7 +104,7 @@ pip install -e .
 控制节点需要和 Franka 固件匹配的 libfranka / ROS 环境。RLinf 文档中建议 Franka firmware `<5.9.0`，常用兼容版本是 `5.7.2`。
 
 ```bash
-cd /path/to/pi06-Recap-Franka
+cd /path/to/pi05-Recap-Franka
 bash requirements/install.sh embodied --env franka
 source .venv/bin/activate
 pip install -e .
@@ -116,7 +116,7 @@ pip install -e .
 
 最终测评至少需要：
 
-- 策略 checkpoint：例如 `/mnt/data/checkpoints/pi05_recap_franka/global_step_XXXX`
+- 策略 checkpoint：例如 `/data/yangky/checkpoints/pi05_recap_franka/global_step_XXXX`
 - 与训练数据匹配的 OpenPI normalization stats
 - 与 checkpoint 匹配的 OpenPI config name
 
@@ -181,13 +181,13 @@ env:
 
 rollout:
   model:
-    model_path: /path/to/pi05_or_pi06_recap_checkpoint
+    model_path: /path/to/pi05_recap_or_internal_checkpoint
     openpi:
       config_name: "pi05_franka_pnp"
 
 actor:
   model:
-    model_path: /path/to/pi05_or_pi06_recap_checkpoint
+    model_path: /path/to/pi05_recap_or_internal_checkpoint
     openpi:
       config_name: "pi05_franka_pnp"
 ```

@@ -407,6 +407,74 @@ ray start --address='<gpu_node_ip>:6379'
 
 ## 7. 跑单个 task 测评
 
+如果采用 **amax 起推理 service，pnp 机器开 client** 的方式，不需要先启动 RLinf Ray eval；amax 只负责加载模型并通过 WebSocket 返回 action chunk。
+
+### 7.1 amax 启动 pi05 Franka 推理服务
+
+在 amax 上：
+
+```bash
+cd /data/yangky/test/pi05-Recap-Franka
+
+export REPO_PATH="$(pwd)"
+export PYTHONPATH="${REPO_PATH}:${PYTHONPATH:-}"
+export HYDRA_FULL_ERROR=1
+
+python scripts/franka/serve_shuo_pi05_policy.py \
+  --host 0.0.0.0 \
+  --port 13316 \
+  --model-path /path/to/pi05_base_openpi_rlinf \
+  --assets-dir /path/to/pi05_base_openpi_rlinf/assets \
+  --norm-stats-path /path/to/pi05_base_openpi_rlinf/assets/franka_shuo_bowls_ring/norm_stats.json \
+  --ckpt-path "${REPO_PATH}/checkpoints/sft_franka_shuo_pi05/checkpoints/global_step_15000/actor/model_state_dict/full_weights.pt" \
+  --config-name pi05_franka_shuo \
+  --num-action-chunks 32 \
+  --num-steps 5 \
+  --response-horizon 32 \
+  --default-prompt "stack_bowls_in_size_order_rc"
+```
+
+服务启动成功后会打印：
+
+```text
+SERVER READY: ws://0.0.0.0:13316
+```
+
+pnp client 连接地址填：
+
+```text
+ws://<amax_ip>:13316
+```
+
+如果换到 ring 任务，把 prompt 改成：
+
+```bash
+--default-prompt "place_ring_on_rod_rc_0810"
+```
+
+服务端接收的 pnp payload 需要包含：
+
+| 字段 | 说明 |
+| --- | --- |
+| `state.follow1_pos` 或 `state` | 单臂 Franka 7D state：`x,y,z,rx,ry,rz,gripper` |
+| `views.global_image` 或 `views.camera_front` | 训练里的 `global_image` 主视角 |
+| `views.right_image` 或 `views.camera_right` | 训练里的 `right_image` |
+| `views.wrist_image` 或 `views.camera_wrist` | 训练里的 `wrist_image` |
+| `prompt` / `instruction` / `task` | 可选；不传则使用 `--default-prompt` |
+
+返回给 pnp client 的字段：
+
+| 字段 | 说明 |
+| --- | --- |
+| `actions` | `[T, 7]` action chunk |
+| `follow1_pos` | 同 `actions`，兼容老 pnp client |
+| `action` | 第一个 7D action |
+| `server_timing.infer_ms` | 单次推理耗时 |
+
+注意：这条 service 路径和 `task01/task02` 的 YAML 一样走 `openpi_rlinf + pi05_franka_shuo + full_weights.pt`。它不是 OpenPI 官方 `model.safetensors` server；师兄给的 `full_weights.pt` 要按 RLinf wrapper 加载。
+
+### 7.2 RLinf 一体式 eval
+
 推荐直接指定自定义 config 目录：
 
 ```bash

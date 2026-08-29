@@ -469,6 +469,8 @@ amax 上已确认存在的 pi0.5 base model 路径是：
 推荐用 amax 专用启动脚本。这个脚本已经写入当前 amax 上实际存在的 pi0.5 base model 路径，并会按 `CKPT_PROFILE` 自动选择 checkpoint 和 norm stats：
 
 ```bash
+cd /data/yangky/test/pi05-Recap-Franka
+
 # 前两个任务：stack bowls / place ring
 export CKPT_PROFILE=front2
 export TASK_PROMPT=stack_bowls_in_size_order_rc
@@ -478,6 +480,17 @@ bash scripts/franka/run_shuo_pi05_service_amax.sh
 export CKPT_PROFILE=d2
 export TASK_PROMPT=place_fruits_on_plate_rc
 bash scripts/franka/run_shuo_pi05_service_amax.sh
+```
+
+amax 上已准备好的推理环境是 `/home/amax/venvs/pi05-franka-service`，启动脚本会自动激活它。不要直接在 base 环境里跑 `python scripts/franka/serve_shuo_pi05_policy.py`，base 缺 `openpi_client/openpi/ray` 等依赖。
+
+长时间跑实验建议用 tmux 保持服务：
+
+```bash
+tmux new-session -d -s pi05_front2 \
+  'cd /data/yangky/test/pi05-Recap-Franka && export CKPT_PROFILE=front2 TASK_PROMPT=stack_bowls_in_size_order_rc && bash scripts/franka/run_shuo_pi05_service_amax.sh'
+
+tmux attach -t pi05_front2
 ```
 
 服务启动成功后会打印：
@@ -521,6 +534,8 @@ export ASYNC_USE_LAST_ACTIONS="false"
 
 ```bash
 cd ~/桌面/franka_deploy_0128_ee/franka_deploy
+export NO_PROXY=192.168.10.114,localhost,127.0.0.1
+unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY all_proxy ALL_PROXY
 bash start_inference_async.sh
 ```
 

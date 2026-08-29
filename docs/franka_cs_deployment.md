@@ -69,6 +69,14 @@ find /home/amax/checkpoints/pi05-Recap-Franka -path '*full_weights.pt' -o -name 
 
 ## 4. amax 启动推理服务
 
+amax 上已准备好的推理 venv：
+
+```bash
+/home/amax/venvs/pi05-franka-service
+```
+
+`scripts/franka/run_shuo_pi05_service_amax.sh` 会自动激活这个 venv。不要直接用 base 里的 `python scripts/franka/serve_shuo_pi05_policy.py`，base 环境缺 `openpi_client/openpi/ray` 等 OpenPI 推理依赖。
+
 前两个任务：
 
 ```bash
@@ -76,6 +84,15 @@ cd /data/yangky/test/pi05-Recap-Franka
 export CKPT_PROFILE=front2
 export TASK_PROMPT=stack_bowls_in_size_order_rc
 bash scripts/franka/run_shuo_pi05_service_amax.sh
+```
+
+长时间跑实验建议用 tmux：
+
+```bash
+tmux new-session -d -s pi05_front2 \
+  'cd /data/yangky/test/pi05-Recap-Franka && export CKPT_PROFILE=front2 TASK_PROMPT=stack_bowls_in_size_order_rc && bash scripts/franka/run_shuo_pi05_service_amax.sh'
+
+tmux attach -t pi05_front2
 ```
 
 切到 ring：
@@ -207,6 +224,13 @@ start_inference_rtc2.sh
 ```bash
 ping 192.168.10.114
 nc -vz 192.168.10.114 33050
+```
+
+如果 pnp shell 里配置过代理，先绕过 amax 内网地址：
+
+```bash
+export NO_PROXY=192.168.10.114,localhost,127.0.0.1
+unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY all_proxy ALL_PROXY
 ```
 
 在 amax 上检查：

@@ -4,6 +4,13 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_PATH="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
+FRANKA_SERVICE_VENV="${FRANKA_SERVICE_VENV:-/home/amax/venvs/pi05-franka-service}"
+if [[ -f "${FRANKA_SERVICE_VENV}/bin/activate" ]]; then
+  # Keep the launcher usable from a plain shell/base conda prompt on amax.
+  # Override FRANKA_SERVICE_VENV to use another prepared environment.
+  source "${FRANKA_SERVICE_VENV}/bin/activate"
+fi
+
 export PYTHONPATH="${REPO_PATH}:${PYTHONPATH:-}"
 export HYDRA_FULL_ERROR=1
 

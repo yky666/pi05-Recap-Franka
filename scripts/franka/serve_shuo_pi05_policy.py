@@ -25,11 +25,20 @@ LOGGER = logging.getLogger("serve_shuo_pi05_policy")
 def _import_msgpack_numpy():
     try:
         from openpi_client import msgpack_numpy
-    except ImportError as exc:  # pragma: no cover
-        raise ImportError(
-            "openpi_client.msgpack_numpy is required by the pnp websocket client "
-            "protocol. Install the OpenPI client package in this environment."
-        ) from exc
+    except ImportError:
+        try:
+            import msgpack_numpy
+        except ImportError as exc:  # pragma: no cover
+            raise ImportError(
+                "msgpack_numpy support is required by the pnp websocket client "
+                "protocol. Install openpi-client or msgpack-numpy in this environment."
+            ) from exc
+    return msgpack_numpy
+
+
+def _patch_msgpack_numpy(msgpack_numpy):
+    if hasattr(msgpack_numpy, "patch"):
+        msgpack_numpy.patch()
     return msgpack_numpy
 
 
@@ -210,7 +219,8 @@ def _load_model(args: argparse.Namespace):
     cfg.openpi.action_horizon = args.num_action_chunks
     cfg.openpi.action_chunk = args.num_action_chunks
     cfg.openpi.action_env_dim = args.action_dim
-    cfg.openpi_data.asset_id = args.asset_id
+    if "asset_id" in cfg.openpi_data:
+        cfg.openpi_data.pop("asset_id")
     cfg.openpi_data.norm_stats_path = args.norm_stats_path
 
     LOGGER.info("building model from %s", args.model_path)
@@ -278,7 +288,7 @@ def main() -> None:
         force=True,
     )
     _drop_proxy_env()
-    msgpack_numpy = _import_msgpack_numpy()
+    msgpack_numpy = _patch_msgpack_numpy(_import_msgpack_numpy())
 
     model, cfg = _load_model(args)
     lock = threading.Lock()

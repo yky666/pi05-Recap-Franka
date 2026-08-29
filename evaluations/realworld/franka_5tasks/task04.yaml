@@ -1,7 +1,7 @@
 defaults:
   - env/realworld_bin_relocation@env.train
   - env/realworld_bin_relocation@env.eval
-  - model/pi0_5@actor.model
+  - model/pi0_5_pytorch_franka_shuo_eval@actor.model
   - weight_syncer/patch_syncer@weight_syncer
   - override hydra/job_logging: stdout
 
@@ -38,8 +38,8 @@ runner:
     delay_buffer_size: 8
   logger:
     log_path: "../results"
-    project_name: rlinf
-    experiment_name: "franka_task04_pi05_recap_eval"
+    project_name: pi05-recap-franka
+    experiment_name: "franka_plug_charger_into_socket_rc_pi05_shuo_d2_eval"
     logger_backends: ["tensorboard"] # wandb, swanlab
 
   max_epochs: 8000
@@ -51,7 +51,7 @@ runner:
   save_interval: -1
 
   resume_dir: null # Optional: path to a saved checkpoint directory, such as 'checkpoints/global_step_10'. If not None, it will be used to resume training.
-  ckpt_path: null  # Optional: path to a .pt checkpoint. If not None, it will be loaded after the model is instantiated (for evaluation).
+  ckpt_path: /home/amax/checkpoints/pi05-Recap-Franka/20260828-080659-franka_pi05_rlinf_d2/sft_franka_shuo_pi05/checkpoints/global_step_23000/actor/model_state_dict/full_weights.pt
 
 algorithm:
   normalize_advantages: True
@@ -124,6 +124,7 @@ env:
       use_dense_reward: False
       target_ee_pose: TARGET_EE_POSE
       camera_serials: ["CAMERA_SERIAL1", "CAMERA_SERIAL2"]
+      task_description: "plug_charger_into_socket_rc"
       max_num_steps: 240
       binary_gripper_threshold: 0.1
       enable_gripper_penalty: False

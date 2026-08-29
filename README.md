@@ -143,40 +143,57 @@ pip install -e .
 
 不要把模型权重、数据集、机器人 IP、相机 serial、飞书密码等提交到 git。
 
-### 3.1 下载师兄给的联合微调权重
+### 3.1 下载师兄给的联合微调 / RLT 权重
 
-师兄给的权重来自 Hugging Face：
+师兄给了两套 Franka pi0.5 权重：
 
-```text
-https://huggingface.co/JianZhangAI/Real-RL/resolve/main/franka/rlinf/sft_franka_shuo_pi05/checkpoints/global_step_15000/actor/model_state_dict/full_weights.pt
-```
+| 用途 | Hugging Face 路径 | checkpoint | asset id |
+| --- | --- | --- | --- |
+| bowls / ring 前两个任务 | `franka/rlinf/sft_franka_shuo_pi05` | `global_step_15000/actor/model_state_dict/full_weights.pt` | `franka_shuo_bowls_ring` |
+| fruits / charger / peg 后续任务 | `franka/rlinf/20260828-080659-franka_pi05_rlinf_d2` | `global_step_23000/actor/model_state_dict/full_weights.pt` | `franka_shuo_fruits_charger_peg` |
 
-我检查到这个文件可以公开访问，大小约 12.4 GiB。仓库里只提交下载脚本，不提交权重文件。
+每个 `full_weights.pt` 约 12.5 GiB。amax 的 `/data` 当前空间不够，默认下载到 `/home/amax/checkpoints/pi05-Recap-Franka`：
 
 ```bash
 cd /data/yangky/test/pi05-Recap-Franka
 bash scripts/franka/download_shuo_pi05_weights.sh
 ```
 
-默认下载到：
+默认输出路径：
 
 ```text
-checkpoints/sft_franka_shuo_pi05/checkpoints/global_step_15000/actor/model_state_dict/full_weights.pt
+/home/amax/checkpoints/pi05-Recap-Franka/sft_franka_shuo_pi05/checkpoints/global_step_15000/actor/model_state_dict/full_weights.pt
+/home/amax/checkpoints/pi05-Recap-Franka/20260828-080659-franka_pi05_rlinf_d2/sft_franka_shuo_pi05/checkpoints/global_step_23000/actor/model_state_dict/full_weights.pt
 ```
 
 如果要放到别的目录：
 
 ```bash
-bash scripts/franka/download_shuo_pi05_weights.sh /data/yangky/checkpoints/sft_franka_shuo_pi05/checkpoints/global_step_15000/actor/model_state_dict
+bash scripts/franka/download_shuo_pi05_weights.sh /home/amax/checkpoints/pi05-Recap-Franka
 ```
 
-注意这个 Hugging Face 路径只包含 `full_weights.pt`，没有 OpenPI assets / norm stats。因此部署时：
+注意 Hugging Face 这两个目录只包含 `full_weights.pt` 和训练日志，没有单独上传 OpenPI assets / norm stats。根据训练日志，norm stats 已在 amax 上整理到：
+
+```text
+/home/amax/checkpoints/pi05-Recap-Franka/assets/franka_shuo_bowls_ring/norm_stats.json
+/home/amax/checkpoints/pi05-Recap-Franka/assets/franka_shuo_fruits_charger_peg/norm_stats.json
+```
+
+仓库内也保留了一份同样的 stats 作为 fallback：
+
+```text
+scripts/franka/norm_stats/franka_shuo_bowls_ring/norm_stats.json
+scripts/franka/norm_stats/franka_shuo_fruits_charger_peg/norm_stats.json
+```
+
+部署时：
 
 - `runner.ckpt_path` 指向这个 `full_weights.pt`。
 - `rollout.model.model_path` 和 `actor.model.model_path` 指向本地 `pi05_base_openpi_rlinf`。
 - `rollout.model.openpi.config_name` 和 `actor.model.openpi.config_name` 使用 `pi05_franka_shuo`。
-- `openpi_data.asset_id` 使用 `franka_shuo_bowls_ring`。
-- `openpi_data.norm_stats_path` 指向训练时同一份 `assets/franka_shuo_bowls_ring/norm_stats.json`。
+- `openpi_data.asset_id` 和 `openpi_data.norm_stats_path` 必须按上表和 task 组切换。
+
+这里仍然需要 `pi05_base`，原因是 RLinf/OpenPI 的 PyTorch wrapper 会先用 base config 和 base 参数实例化模型结构，再加载师兄训练出来的 `full_weights.pt` 覆盖 actor 权重。推理输出 action 的不是官方裸 `pi05_base`，而是 `pi05_base + full_weights.pt + 对应 norm_stats` 组合后的你们自训策略。
 
 师兄训练配置里的关键路径是：
 
@@ -191,16 +208,21 @@ actor:
       norm_stats_path: /vast/users/xiaodan/zhangjian/RealRL/pi05_base_openpi_rlinf/assets/franka_shuo_bowls_ring/norm_stats.json
 ```
 
-部署机器上需要把这些路径替换成本地真实路径。不要只下载 `full_weights.pt` 就直接跑；如果 norm stats 或相机顺序不一致，SR 会失真。
+部署机器上需要把这些路径替换成本地真实路径。不要只下载 `full_weights.pt` 就直接跑；如果 checkpoint、norm stats 或相机顺序不一致，SR 会失真。
 
-### 3.2 已知两个微调任务
+### 3.2 已知任务和权重对应关系
 
-根据师兄给的截图，当前联合权重至少覆盖两个任务：
+根据 HF 训练日志，当前权重覆盖的数据目录如下：
 
 | Task YAML | Task id / prompt | 默认 checkpoint |
 | --- | --- | --- |
-| `task01.yaml` | `stack_bowls_in_size_order_rc` | `sft_franka_shuo_pi05/global_step_15000` |
-| `task02.yaml` | `place_ring_on_rod_rc_0810` | `sft_franka_shuo_pi05/global_step_15000` |
+| `task01.yaml` | `stack_bowls_in_size_order_rc` | `front2: sft_franka_shuo_pi05/global_step_15000` |
+| `task02.yaml` | `place_ring_on_rod_rc_0810` | `front2: sft_franka_shuo_pi05/global_step_15000` |
+| `task03.yaml` | `place_fruits_on_plate_rc` | `d2: 20260828-080659-franka_pi05_rlinf_d2/global_step_23000` |
+| `task04.yaml` | `plug_charger_into_socket_rc` | `d2: 20260828-080659-franka_pi05_rlinf_d2/global_step_23000` |
+| `task05.yaml` | `insert_peg_into_hole_rc` | `d2: 20260828-080659-franka_pi05_rlinf_d2/global_step_23000` |
+
+训练日志里还包含两个 new-side 数据目录：`new_side/place_ring_on_rod_new_side_rc`、`new_side/plug_charger_into_socket_new_side_rc`、`new_side/insert_peg_into_hole_new_side_rc`。如果实验表格把 new-side 作为独立 task，需要把 pnp `TASK` 和 amax `TASK_PROMPT` 改成对应的 `*_new_side_rc` 字符串，并继续使用同一组 checkpoint / asset id。
 
 如果实际训练时用的是自然语言 prompt，而不是上表的 task id 字符串，需要把
 `env.eval.override_cfg.task_description` 改成训练数据里完全一致的文本。
@@ -425,8 +447,9 @@ python scripts/franka/serve_shuo_pi05_policy.py \
   --port 33050 \
   --model-path /home/amax/.cache/huggingface/hub/models--lerobot--pi05_base/snapshots/9e55186ad36e66b95cda57bc47818d9e6237ae30 \
   --assets-dir /home/amax/.cache/huggingface/hub/models--lerobot--pi05_base/snapshots/9e55186ad36e66b95cda57bc47818d9e6237ae30 \
-  --norm-stats-path /path/to/pi05_base_openpi_rlinf/assets/franka_shuo_bowls_ring/norm_stats.json \
-  --ckpt-path "${REPO_PATH}/checkpoints/sft_franka_shuo_pi05/checkpoints/global_step_15000/actor/model_state_dict/full_weights.pt" \
+  --norm-stats-path /home/amax/checkpoints/pi05-Recap-Franka/assets/franka_shuo_bowls_ring/norm_stats.json \
+  --ckpt-path /home/amax/checkpoints/pi05-Recap-Franka/sft_franka_shuo_pi05/checkpoints/global_step_15000/actor/model_state_dict/full_weights.pt \
+  --asset-id franka_shuo_bowls_ring \
   --config-name pi05_franka_shuo \
   --num-action-chunks 32 \
   --num-steps 5 \
@@ -440,13 +463,19 @@ amax 上已确认存在的 pi0.5 base model 路径是：
 /home/amax/.cache/huggingface/hub/models--lerobot--pi05_base/snapshots/9e55186ad36e66b95cda57bc47818d9e6237ae30
 ```
 
-这个 snapshot 只有 `config.json` 和 `model.safetensors`，没有训练资产目录；Shuo 联合权重必须额外配套训练时的 `franka_shuo_bowls_ring/norm_stats.json`。当前 amax 上没有搜到这个 norm stats，也没有搜到 `full_weights.pt`，所以不能直接拿旧 `stack_bowls_rc` / `pick_and_place_cup_rc` 的 stats 顶替。
+这个 snapshot 只有 `config.json` 和 `model.safetensors`，没有训练资产目录；Shuo 权重必须额外配套训练时的 norm stats。当前 amax 已从 HF 训练日志整理了两份 stats 到 `/home/amax/checkpoints/pi05-Recap-Franka/assets/`，不要拿旧 `stack_bowls_rc` / `pick_and_place_cup_rc` 的 stats 顶替。
 
-也可以用 amax 专用启动脚本。这个脚本已经写入当前 amax 上实际存在的 pi0.5 base model 路径，但会强制要求你显式提供师兄训练用的 `franka_shuo_bowls_ring/norm_stats.json`：
+推荐用 amax 专用启动脚本。这个脚本已经写入当前 amax 上实际存在的 pi0.5 base model 路径，并会按 `CKPT_PROFILE` 自动选择 checkpoint 和 norm stats：
 
 ```bash
-export NORM_STATS_PATH=/path/to/pi05_base_openpi_rlinf/assets/franka_shuo_bowls_ring/norm_stats.json
+# 前两个任务：stack bowls / place ring
+export CKPT_PROFILE=front2
 export TASK_PROMPT=stack_bowls_in_size_order_rc
+bash scripts/franka/run_shuo_pi05_service_amax.sh
+
+# 后续 fruits / charger / peg 任务
+export CKPT_PROFILE=d2
+export TASK_PROMPT=place_fruits_on_plate_rc
 bash scripts/franka/run_shuo_pi05_service_amax.sh
 ```
 

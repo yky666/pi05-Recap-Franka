@@ -19,12 +19,12 @@ add_value_head: False
 
 openpi_data:
   asset_id: "franka_shuo_bowls_ring"
-  norm_stats_path: /path/to/pi05_base_openpi_rlinf/assets/franka_shuo_bowls_ring/norm_stats.json
+  norm_stats_path: /home/amax/checkpoints/pi05-Recap-Franka/assets/franka_shuo_bowls_ring/norm_stats.json
 
 openpi:
   task: eval
   config_name: "pi05_franka_shuo"
-  assets_dir: /path/to/pi05_base_openpi_rlinf/assets
+  assets_dir: /home/amax/.cache/huggingface/hub/models--lerobot--pi05_base/snapshots/9e55186ad36e66b95cda57bc47818d9e6237ae30
   asset_id: "franka_shuo_bowls_ring"
   # global_image, wrist_image, right_image; all unmasked.
   num_images_in_input: 3

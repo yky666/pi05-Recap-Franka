@@ -43,6 +43,9 @@ from rlinf.models.embodiment.openpi.dataconfig.franka_co_training_dataconfig imp
 from rlinf.models.embodiment.openpi.dataconfig.franka_dataconfig import (
     CustomDataConfig,
 )
+from rlinf.models.embodiment.openpi.dataconfig.franka_shuo_dataconfig import (
+    LeRobotFrankaShuoDataConfig,
+)
 from rlinf.models.embodiment.openpi.dataconfig.gsenv_dataconfig import (
     LeRobotGSEnvDataConfig,
 )
@@ -304,6 +307,22 @@ _CONFIGS = [
         num_train_steps=5_000,
         log_interval=5,
         save_interval=250,
+    ),
+    TrainConfig(
+        name="pi05_franka_shuo",
+        # Matches Shuo's RL-Token pi05_stack_bowls_rc_franka_ee_local setup:
+        # pi05, 32-step chunk, continuous 7D Franka EE, 3 cameras.
+        model=pi0_config.Pi0Config(
+            pi05=True, action_horizon=32, discrete_state_input=False
+        ),
+        data=LeRobotFrankaShuoDataConfig(
+            repo_id="fr3_a1_three_tasks_franka_ee",
+            base_config=DataConfig(prompt_from_task=True),
+            assets=AssetsConfig(asset_id="fr3_a1_three_tasks_franka_ee"),
+            extra_delta_transform=False,
+            balance_datasets=True,
+        ),
+        pytorch_weight_path="checkpoints/torch/pi05_droid_pytorch",
     ),
     TrainConfig(
         name="pi0_metaworld",

@@ -1,7 +1,7 @@
 defaults:
   - env/realworld_bin_relocation@env.train
   - env/realworld_bin_relocation@env.eval
-  - model/pi0_5@actor.model
+  - model/pi0_5_pytorch_franka_shuo_eval@actor.model
   - weight_syncer/patch_syncer@weight_syncer
   - override hydra/job_logging: stdout
 
@@ -135,7 +135,10 @@ env:
     use_spacemouse: False
     chunk_pause_seconds: 0.
     total_num_envs: 1
-    main_image_key: wrist_2
+    # Must be the same physical camera used as training global_image.
+    # The remaining sorted camera keys become extra_view_image[0:2], consumed
+    # by pi05_franka_shuo as right_image and wrist_image.
+    main_image_key: GLOBAL_CAMERA_KEY
     max_steps_per_rollout_epoch: 240
     max_episode_steps: 240
     video_cfg:
@@ -164,21 +167,33 @@ rollout:
   pipeline_stage_num: 1
 
   model:
-    model_path: /path/to/pi05_franka_pnp_base_or_assets_checkpoint
-    model_type: "openpi"
+    model_path: /path/to/pi05_base_openpi_rlinf
+    model_type: "openpi_rlinf"
     precision: ${actor.model.precision}
     add_value_head: False
-    num_action_chunks: 5
+    num_action_chunks: 32
     action_dim: 7
     rewrite_chunk_gripper: True
-    num_steps: 10
+    num_steps: 5
     is_lora: False
+    openpi_data:
+      asset_id: "franka_shuo_bowls_ring"
+      norm_stats_path: /path/to/pi05_base_openpi_rlinf/assets/franka_shuo_bowls_ring/norm_stats.json
     openpi:
-      config_name: "pi05_franka_pnp"
-      num_images_in_input: 2
+      task: eval
+      config_name: "pi05_franka_shuo"
+      assets_dir: /path/to/pi05_base_openpi_rlinf/assets
+      asset_id: "franka_shuo_bowls_ring"
+      num_images_in_input: 3
       noise_method: "flow_sde"
-      action_horizon: 5
-      action_chunk: 5
+      action_horizon: 32
+      action_chunk: 32
+      action_env_dim: 7
+      model_action_dim: 32
+      paligemma_variant: "gemma_2b"
+      action_expert_variant: "gemma_300m"
+      max_token_len: 200
+      discrete_state_input: false
       noise_params: [0.7, 0.3, 400]
       joint_logprob: False
       rtc_enabled: ${runner.rtc.enabled}
@@ -194,19 +209,32 @@ actor:
   enable_offload: False
 
   model:
-    model_path: /path/to/pi05_franka_pnp_base_or_assets_checkpoint
-    model_type: "openpi"
+    model_path: /path/to/pi05_base_openpi_rlinf
+    model_type: "openpi_rlinf"
     add_value_head: False
-    num_action_chunks: 5
+    num_action_chunks: 32
     rewrite_chunk_gripper: False
-    num_steps: 10
+    action_dim: 7
+    num_steps: 5
     is_lora: False
+    openpi_data:
+      asset_id: "franka_shuo_bowls_ring"
+      norm_stats_path: /path/to/pi05_base_openpi_rlinf/assets/franka_shuo_bowls_ring/norm_stats.json
     openpi:
-      value_after_vlm: False
-      config_name: "pi05_franka_pnp"
-      num_images_in_input: 2
+      task: eval
+      config_name: "pi05_franka_shuo"
+      assets_dir: /path/to/pi05_base_openpi_rlinf/assets
+      asset_id: "franka_shuo_bowls_ring"
+      num_images_in_input: 3
       noise_method: "flow_sde"
-      action_horizon: 5
+      action_horizon: 32
+      action_chunk: 32
+      action_env_dim: 7
+      model_action_dim: 32
+      paligemma_variant: "gemma_2b"
+      action_expert_variant: "gemma_300m"
+      max_token_len: 200
+      discrete_state_input: false
       noise_params: [0.7, 0.3, 400]
       joint_logprob: False
       rtc_enabled: ${runner.rtc.enabled}

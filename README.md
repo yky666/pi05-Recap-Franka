@@ -6,7 +6,13 @@
 SR = successes / 30
 ```
 
-先把结论说清楚：目前从公开的 RLinf 源码、RLinf 官方 RECAP 文档和 OpenPI 文档看，代码里实际可运行的名字是 `pi05` / `pi0_5` / `pi0.5`。因此本项目按 **pi0.5 + RECAP + Franka** 执行；如果师兄后续给了私有 checkpoint 或 config diff，再把对应差异补进来。
+先把结论说清楚：师兄这次给的是自己训练的 **Franka pi0.5 联合 SFT checkpoint**，训练配置来自 `RealWorld-RLinf` 的 `franka` 分支：`examples/sft/config/franka_pi05_rlinf.yaml`，训练命令是：
+
+```bash
+bash examples/sft/run_vla_sft.sh franka_pi05_rlinf
+```
+
+因此当前部署和 SR 测评应优先对齐这套 `pi05_franka_shuo` 数据加载、相机输入和 normalization stats。公开代码里没有可直接运行的 `pi06` / `pi0.6` RECAP 源码；如果后续要补 `pi06 RECAP`，大概率需要拿到内部代码或按论文复现。
 
 ## 目标
 
@@ -52,8 +58,8 @@ RLinf 推荐关注的日志指标是：
 | 5 个 task | 每个任务名称、自然语言 prompt、初始摆放、成功标准 |
 | checkpoint | RECAP 后策略 checkpoint 路径 |
 | 模型名 | 公开 `pi05/pi0.5`，或内部微调 checkpoint |
-| action interface | `pi05_franka_pnp` / `pi05_franka_state` / `pi05_dualfranka_tcp_rot6d` |
-| 摄像头 | camera serials、主视角 key |
+| action interface | 当前对齐 `pi05_franka_shuo`：7D Franka EE action，32 chunk |
+| 摄像头 | 当前对齐 3 路图像：`global_image`、`right_image`、`wrist_image` |
 | 夹爪 | Franka hand / Robotiq |
 | 试验次数 | 每个 task 30 次 |
 | 记录方式 | 是否保存视频、是否导出 LeRobot rollout 数据 |
@@ -130,6 +136,7 @@ pip install -e .
 
 当前仓库里常见 Franka 相关 config name：
 
+- 师兄联合权重：`pi05_franka_shuo`
 - 单臂 PnP：`pi05_franka_pnp`
 - 单臂 state：`pi05_franka_state`
 - 双臂 TCP rot6d：`pi05_dualfranka_tcp_rot6d`
@@ -166,8 +173,25 @@ bash scripts/franka/download_shuo_pi05_weights.sh /data/yangky/checkpoints/sft_f
 注意这个 Hugging Face 路径只包含 `full_weights.pt`，没有 OpenPI assets / norm stats。因此部署时：
 
 - `runner.ckpt_path` 指向这个 `full_weights.pt`。
-- `rollout.model.model_path` 和 `actor.model.model_path` 指向本地 pi0.5 Franka base/assets 目录，或一个包含可用 assets/norm stats 的 checkpoint 目录。
-- 当前两个任务模板默认使用 `pi05_franka_pnp`，对应 assets 默认路径是 `checkpoints/torch/pi05_franka_pnp/assets`。
+- `rollout.model.model_path` 和 `actor.model.model_path` 指向本地 `pi05_base_openpi_rlinf`。
+- `rollout.model.openpi.config_name` 和 `actor.model.openpi.config_name` 使用 `pi05_franka_shuo`。
+- `openpi_data.asset_id` 使用 `franka_shuo_bowls_ring`。
+- `openpi_data.norm_stats_path` 指向训练时同一份 `assets/franka_shuo_bowls_ring/norm_stats.json`。
+
+师兄训练配置里的关键路径是：
+
+```yaml
+actor:
+  model:
+    model_path: /vast/users/xiaodan/zhangjian/RealRL/pi05_base_openpi_rlinf
+    openpi:
+      assets_dir: /vast/users/xiaodan/zhangjian/RealRL/pi05_base_openpi_rlinf/assets
+      asset_id: franka_shuo_bowls_ring
+    openpi_data:
+      norm_stats_path: /vast/users/xiaodan/zhangjian/RealRL/pi05_base_openpi_rlinf/assets/franka_shuo_bowls_ring/norm_stats.json
+```
+
+部署机器上需要把这些路径替换成本地真实路径。不要只下载 `full_weights.pt` 就直接跑；如果 norm stats 或相机顺序不一致，SR 会失真。
 
 ### 3.2 已知两个微调任务
 
@@ -193,7 +217,7 @@ evaluations/realworld/franka_5tasks/task04.yaml
 evaluations/realworld/franka_5tasks/task05.yaml
 ```
 
-这些模板来自 `evaluations/realworld/realworld_pnp_eval_pi05_sft_RTC.yaml`，默认是单臂 Franka + OpenPI pi0.5 + RTC。每个 `taskXX.yaml` 至少改这些字段：
+这些模板来自 `evaluations/realworld/realworld_pnp_eval_pi05_sft_RTC.yaml`，但 `task01.yaml` 和 `task02.yaml` 已经改成对齐师兄的 `pi05_franka_shuo`。每个 `taskXX.yaml` 至少改这些字段：
 
 ```yaml
 cluster:
@@ -229,20 +253,29 @@ env:
       only_success: False
     override_cfg:
       target_ee_pose: TARGET_EE_POSE
-      camera_serials: ["CAMERA_SERIAL1", "CAMERA_SERIAL2"]
+      camera_serials: ["GLOBAL_CAMERA_SERIAL", "RIGHT_CAMERA_SERIAL", "WRIST_CAMERA_SERIAL"]
+      main_image_key: GLOBAL_CAMERA_KEY
       max_num_steps: 240
 
 rollout:
   model:
-    model_path: /path/to/pi05_franka_pnp_base_or_assets_checkpoint
+    model_path: /path/to/pi05_base_openpi_rlinf
+    openpi_data:
+      asset_id: "franka_shuo_bowls_ring"
+      norm_stats_path: /path/to/pi05_base_openpi_rlinf/assets/franka_shuo_bowls_ring/norm_stats.json
     openpi:
-      config_name: "pi05_franka_pnp"
+      config_name: "pi05_franka_shuo"
+      num_images_in_input: 3
 
 actor:
   model:
-    model_path: /path/to/pi05_franka_pnp_base_or_assets_checkpoint
+    model_path: /path/to/pi05_base_openpi_rlinf
+    openpi_data:
+      asset_id: "franka_shuo_bowls_ring"
+      norm_stats_path: /path/to/pi05_base_openpi_rlinf/assets/franka_shuo_bowls_ring/norm_stats.json
     openpi:
-      config_name: "pi05_franka_pnp"
+      config_name: "pi05_franka_shuo"
+      num_images_in_input: 3
 ```
 
 对师兄给的 `full_weights.pt`，同时设置：
@@ -251,6 +284,18 @@ actor:
 runner:
   ckpt_path: checkpoints/sft_franka_shuo_pi05/checkpoints/global_step_15000/actor/model_state_dict/full_weights.pt
 ```
+
+相机输入要和训练数据加载对齐。`franka_pi05_rlinf.yaml` 对应的数据字段是：
+
+| 训练字段 | 推理侧要求 |
+| --- | --- |
+| `observation/global_image` | `env.eval.main_image_key` 对应的物理主视角 |
+| `observation/right_image` | 额外相机第 1 路 |
+| `observation/wrist_image` | 额外相机第 2 路 |
+| `observation/state` | Franka 当前 7D EE / gripper state |
+| `actions` | 7D Franka EE action |
+
+当前仓库已加入 `pi05_franka_shuo` 的 data config 和 policy transform。真机 eval adapter 会提供 `observation/image` 和 `observation/extra_view_image`，`franka_ee_shuo_policy.py` 里做了兼容映射：主图 fallback 到 `global_image`，额外两路按顺序映射到 `right_image` 和 `wrist_image`。因此实际部署前必须确认 `camera_serials` 排序和 `main_image_key` 正确。
 
 如果任务需要语言 prompt，且对应 env 支持 `task_description`，加到：
 
@@ -384,8 +429,12 @@ python evaluations/eval_embodied_agent.py \
   --config-name task01 \
   runner.logger.log_path="${REPO_PATH}/logs/franka_5tasks/task01/$(date +%Y%m%d-%H%M%S)" \
   runner.ckpt_path="${REPO_PATH}/checkpoints/sft_franka_shuo_pi05/checkpoints/global_step_15000/actor/model_state_dict/full_weights.pt" \
-  rollout.model.model_path=/path/to/pi05_franka_pnp_base_or_assets_checkpoint \
-  actor.model.model_path=/path/to/pi05_franka_pnp_base_or_assets_checkpoint \
+  rollout.model.model_path=/path/to/pi05_base_openpi_rlinf \
+  rollout.model.openpi.assets_dir=/path/to/pi05_base_openpi_rlinf/assets \
+  rollout.model.openpi_data.norm_stats_path=/path/to/pi05_base_openpi_rlinf/assets/franka_shuo_bowls_ring/norm_stats.json \
+  actor.model.model_path=/path/to/pi05_base_openpi_rlinf \
+  actor.model.openpi.assets_dir=/path/to/pi05_base_openpi_rlinf/assets \
+  actor.model.openpi_data.norm_stats_path=/path/to/pi05_base_openpi_rlinf/assets/franka_shuo_bowls_ring/norm_stats.json \
   cluster.node_groups.1.hardware.configs.0.robot_ip=<robot_ip>
 ```
 

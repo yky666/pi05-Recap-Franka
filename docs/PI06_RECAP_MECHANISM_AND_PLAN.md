@@ -4,6 +4,26 @@
 
 我们这轮实验按 **单臂 Franka** 做部署评测。
 
+师兄给的是自己训练后的 Franka pi0.5 联合 SFT checkpoint：
+
+```text
+franka/rlinf/sft_franka_shuo_pi05/checkpoints/global_step_15000/actor/model_state_dict/full_weights.pt
+```
+
+对应训练配置是 `RealWorld-RLinf` 的 `franka` 分支：
+
+```text
+examples/sft/config/franka_pi05_rlinf.yaml
+```
+
+训练命令：
+
+```bash
+bash examples/sft/run_vla_sft.sh franka_pi05_rlinf
+```
+
+所以我们推理部署时不能只看 `full_weights.pt`，还要对齐训练时的数据加载、相机输入、action 维度和 normalization stats。
+
 已知任务：
 
 | Task | Prompt / task id | 模型权重 | 评测次数 | 指标 |
@@ -220,9 +240,114 @@ PI 官方论文/博客里的 `π*0.6` 是用完整 RECAP 方法训练后的模�
   需要拿到 pi06 base/checkpoint/config 或按论文复现
 ```
 
-## 7. 单臂 Franka 30 次 SR 实验流程
+## 7. 师兄 checkpoint 的训练配置要点
 
-### 7.1 下载权重
+`franka_pi05_rlinf.yaml` 的关键配置可以概括为：
+
+| 项 | 值 |
+| --- | --- |
+| 模型 config | `pi05_franka_shuo` |
+| 模型实现 | `openpi_rlinf` |
+| 基座 / assets | `pi05_base_openpi_rlinf` |
+| asset id | `franka_shuo_bowls_ring` |
+| norm stats | `assets/franka_shuo_bowls_ring/norm_stats.json` |
+| 图像输入 | 3 路：`global_image`、`right_image`、`wrist_image` |
+| state | `observation/state` |
+| action | `actions`，7D Franka EE action |
+| action chunk | 32 |
+| flow steps | 5 |
+| 训练数据 | bowls、ring、new-side ring 三个数据目录 |
+
+训练数据路径来自师兄机器：
+
+```text
+/vast/users/xiaodan/zhangjian/RealRL/FR3_A1/stack_bowls_in_size_order_rc
+/vast/users/xiaodan/zhangjian/RealRL/FR3_A1/place_ring_on_rod_rc_0810
+/vast/users/xiaodan/zhangjian/RealRL/FR3_A1/new_side/place_ring_on_rod_new_side_rc
+```
+
+这说明 `full_weights.pt` 是这几个 Franka 数据集上的联合 SFT 权重。部署时应使用相同的 `pi05_franka_shuo` config，而不是默认 `pi05_franka_pnp` config。
+
+## 8. 推理部署时如何对齐数据加载
+
+部署时需要分清两个路径：
+
+| 路径 | 作用 |
+| --- | --- |
+| `runner.ckpt_path` | 师兄给的 `full_weights.pt`，加载微调后的 actor 权重 |
+| `actor/rollout.model.model_path` | 本地 `pi05_base_openpi_rlinf`，提供模型结构和 assets |
+
+核心 YAML 片段：
+
+```yaml
+runner:
+  ckpt_path: checkpoints/sft_franka_shuo_pi05/checkpoints/global_step_15000/actor/model_state_dict/full_weights.pt
+
+rollout:
+  model:
+    model_type: openpi_rlinf
+    model_path: /path/to/pi05_base_openpi_rlinf
+    num_action_chunks: 32
+    action_dim: 7
+    num_steps: 5
+    openpi_data:
+      asset_id: franka_shuo_bowls_ring
+      norm_stats_path: /path/to/pi05_base_openpi_rlinf/assets/franka_shuo_bowls_ring/norm_stats.json
+    openpi:
+      config_name: pi05_franka_shuo
+      assets_dir: /path/to/pi05_base_openpi_rlinf/assets
+      num_images_in_input: 3
+      action_horizon: 32
+      action_chunk: 32
+      action_env_dim: 7
+      model_action_dim: 32
+
+actor:
+  model:
+    model_type: openpi_rlinf
+    model_path: /path/to/pi05_base_openpi_rlinf
+    num_action_chunks: 32
+    action_dim: 7
+    num_steps: 5
+    openpi_data:
+      asset_id: franka_shuo_bowls_ring
+      norm_stats_path: /path/to/pi05_base_openpi_rlinf/assets/franka_shuo_bowls_ring/norm_stats.json
+    openpi:
+      config_name: pi05_franka_shuo
+      assets_dir: /path/to/pi05_base_openpi_rlinf/assets
+      num_images_in_input: 3
+      action_horizon: 32
+      action_chunk: 32
+      action_env_dim: 7
+      model_action_dim: 32
+```
+
+相机也要对齐：
+
+| 训练字段 | 推理侧映射 |
+| --- | --- |
+| `observation/global_image` | 主视角，配置为 `env.eval.main_image_key` |
+| `observation/right_image` | 额外相机第 1 路 |
+| `observation/wrist_image` | 额外相机第 2 路 |
+
+本仓库已补入 `pi05_franka_shuo` 的 data config 和 policy transform。由于真机 eval adapter 默认输出 `observation/image` 和 `observation/extra_view_image`，policy transform 里做了兼容 fallback：
+
+```text
+global_image <- observation/global_image 或 observation/image
+right_image  <- observation/right_image  或 observation/extra_view_image[0]
+wrist_image  <- observation/wrist_image  或 observation/extra_view_image[1]
+```
+
+因此跑真机前要确认：
+
+- `camera_serials` 包含三路相机。
+- `main_image_key` 对应训练时的 `global_image` 物理视角。
+- 剩下两路额外相机顺序分别对应 `right_image`、`wrist_image`。
+- `norm_stats.json` 来自同一个 `franka_shuo_bowls_ring` asset。
+
+## 9. 单臂 Franka 30 次 SR 实验流程
+
+### 9.1 下载权重
 
 ```bash
 cd /data/yangky/test/pi05-Recap-Franka
@@ -235,7 +360,7 @@ bash scripts/franka/download_shuo_pi05_weights.sh
 checkpoints/sft_franka_shuo_pi05/checkpoints/global_step_15000/actor/model_state_dict/full_weights.pt
 ```
 
-### 7.2 配置 pi0.5 Franka base/assets
+### 9.2 配置 pi0.5 Franka base/assets
 
 师兄给的 Hugging Face 路径只包含 `full_weights.pt`，没有 normalization assets。
 
@@ -247,16 +372,20 @@ runner:
 
 rollout:
   model:
-    model_path: /path/to/pi05_franka_pnp_base_or_assets_checkpoint
+    model_path: /path/to/pi05_base_openpi_rlinf
+    openpi:
+      config_name: pi05_franka_shuo
 
 actor:
   model:
-    model_path: /path/to/pi05_franka_pnp_base_or_assets_checkpoint
+    model_path: /path/to/pi05_base_openpi_rlinf
+    openpi:
+      config_name: pi05_franka_shuo
 ```
 
-`model_path` 需要能提供 `pi05_franka_pnp` 对应的 assets / norm stats。
+`model_path` 需要能提供 `pi05_franka_shuo` 对应的 assets / norm stats。
 
-### 7.3 配置单臂 Franka
+### 9.3 配置单臂 Franka
 
 当前模板：
 
@@ -285,10 +414,11 @@ env:
   eval:
     override_cfg:
       target_ee_pose: <target_ee_pose>
-      camera_serials: ["<camera_serial_1>", "<camera_serial_2>"]
+      camera_serials: ["<global_camera_serial>", "<right_camera_serial>", "<wrist_camera_serial>"]
+      main_image_key: <global_camera_key>
 ```
 
-### 7.4 启动 Ray
+### 9.4 启动 Ray
 
 GPU/head 节点：
 
@@ -310,7 +440,7 @@ ray stop -f
 ray start --address='<gpu_node_ip>:6379'
 ```
 
-### 7.5 每个 task 跑 30 次
+### 9.5 每个 task 跑 30 次
 
 建议逐个 task 跑，真机不要完全无人值守。
 
@@ -349,7 +479,7 @@ python evaluations/eval_embodied_agent.py \
 env.eval.rollout_epoch=30
 ```
 
-### 7.6 统计 SR
+### 9.6 统计 SR
 
 从日志中找成功指标：
 
@@ -364,7 +494,7 @@ rg -n "env/success_once|success_once|success" logs/franka_5tasks
 | stack_bowls_in_size_order_rc | 30 | TBD | `successes / 30` |
 | place_ring_on_rod_rc_0810 | 30 | TBD | `successes / 30` |
 
-## 8. 结论
+## 10. 结论
 
 当前可以确定：
 
@@ -376,7 +506,7 @@ rg -n "env/success_once|success_once|success" logs/franka_5tasks
    - 要么师兄另有内部源码/权重/config，需要同步过来；
    - 要么我们要按论文和 RLinf pi0.5 RECAP 代码做复现或近似实现。
 
-## 9. 参考链接
+## 11. 参考链接
 
 - PI `π*0.6` paper: <https://arxiv.org/abs/2511.14759>
 - PI `π*0.6` blog: <https://www.pi.website/blog/pistar06>

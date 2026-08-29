@@ -77,6 +77,7 @@ def _extract_state(payload: dict) -> np.ndarray:
     raw_state = _first_present(
         state_block,
         (
+            "observation/state",
             "follow1_pos",
             "eef_pos",
             "ee_pose",
@@ -88,12 +89,20 @@ def _extract_state(payload: dict) -> np.ndarray:
     if raw_state is None:
         raw_state = _first_present(
             payload,
-            ("follow1_pos", "eef_pos", "ee_pose", "proprio", "robot_state", "state"),
+            (
+                "observation/state",
+                "follow1_pos",
+                "eef_pos",
+                "ee_pose",
+                "proprio",
+                "robot_state",
+                "state",
+            ),
         )
     if raw_state is None:
         raise KeyError(
-            "missing robot state; expected one of state.follow1_pos, state, "
-            "eef_pos, ee_pose, proprio, robot_state"
+            "missing robot state; expected one of observation/state, "
+            "state.follow1_pos, state, eef_pos, ee_pose, proprio, robot_state"
         )
     state = np.asarray(raw_state, dtype=np.float32).reshape(-1)
     if state.shape[0] < 7:
@@ -125,6 +134,7 @@ def _extract_images(payload: dict) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     global_raw = _first_present(
         views,
         (
+            "observation/global_image",
             "global_image",
             "camera_global",
             "camera_front",
@@ -135,11 +145,25 @@ def _extract_images(payload: dict) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     )
     right_raw = _first_present(
         views,
-        ("right_image", "camera_right", "right", "camera_left", "left"),
+        (
+            "observation/right_image",
+            "right_image",
+            "camera_right",
+            "right",
+            "camera_left",
+            "left",
+        ),
     )
     wrist_raw = _first_present(
         views,
-        ("wrist_image", "camera_wrist", "wrist", "hand_image", "camera_hand"),
+        (
+            "observation/wrist_image",
+            "wrist_image",
+            "camera_wrist",
+            "wrist",
+            "hand_image",
+            "camera_hand",
+        ),
     )
 
     missing = [
@@ -227,7 +251,7 @@ def _predict(model, payload: dict, args: argparse.Namespace) -> tuple[dict, floa
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--host", default="0.0.0.0")
-    parser.add_argument("--port", type=int, default=13316)
+    parser.add_argument("--port", type=int, default=33050)
     parser.add_argument(
         "--model-config",
         default="examples/embodiment/config/model/pi0_5_pytorch_franka_shuo_eval.yaml",

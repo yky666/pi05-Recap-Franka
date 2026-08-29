@@ -422,9 +422,9 @@ export HYDRA_FULL_ERROR=1
 
 python scripts/franka/serve_shuo_pi05_policy.py \
   --host 0.0.0.0 \
-  --port 13316 \
-  --model-path /path/to/pi05_base_openpi_rlinf \
-  --assets-dir /path/to/pi05_base_openpi_rlinf/assets \
+  --port 33050 \
+  --model-path /home/amax/.cache/huggingface/hub/models--lerobot--pi05_base/snapshots/9e55186ad36e66b95cda57bc47818d9e6237ae30 \
+  --assets-dir /home/amax/.cache/huggingface/hub/models--lerobot--pi05_base/snapshots/9e55186ad36e66b95cda57bc47818d9e6237ae30 \
   --norm-stats-path /path/to/pi05_base_openpi_rlinf/assets/franka_shuo_bowls_ring/norm_stats.json \
   --ckpt-path "${REPO_PATH}/checkpoints/sft_franka_shuo_pi05/checkpoints/global_step_15000/actor/model_state_dict/full_weights.pt" \
   --config-name pi05_franka_shuo \
@@ -434,17 +434,67 @@ python scripts/franka/serve_shuo_pi05_policy.py \
   --default-prompt "stack_bowls_in_size_order_rc"
 ```
 
+amax 上已确认存在的 pi0.5 base model 路径是：
+
+```text
+/home/amax/.cache/huggingface/hub/models--lerobot--pi05_base/snapshots/9e55186ad36e66b95cda57bc47818d9e6237ae30
+```
+
+这个 snapshot 只有 `config.json` 和 `model.safetensors`，没有训练资产目录；Shuo 联合权重必须额外配套训练时的 `franka_shuo_bowls_ring/norm_stats.json`。当前 amax 上没有搜到这个 norm stats，也没有搜到 `full_weights.pt`，所以不能直接拿旧 `stack_bowls_rc` / `pick_and_place_cup_rc` 的 stats 顶替。
+
+也可以用 amax 专用启动脚本。这个脚本已经写入当前 amax 上实际存在的 pi0.5 base model 路径，但会强制要求你显式提供师兄训练用的 `franka_shuo_bowls_ring/norm_stats.json`：
+
+```bash
+export NORM_STATS_PATH=/path/to/pi05_base_openpi_rlinf/assets/franka_shuo_bowls_ring/norm_stats.json
+export TASK_PROMPT=stack_bowls_in_size_order_rc
+bash scripts/franka/run_shuo_pi05_service_amax.sh
+```
+
 服务启动成功后会打印：
 
 ```text
-SERVER READY: ws://0.0.0.0:13316
+SERVER READY: ws://0.0.0.0:33050
 ```
 
 pnp client 连接地址填：
 
 ```text
-ws://<amax_ip>:13316
+ws://192.168.10.114:33050
 ```
+
+pnp 机器上的 client 项目已核对：
+
+```bash
+ssh pnp@192.168.10.110
+cd ~/桌面/franka_deploy_0128_ee/franka_deploy
+```
+
+实际配置文件是 `config.sh`，当前已改成：
+
+```bash
+export POLICY_SERVER_HOST="192.168.10.114"
+export POLICY_SERVER_PORT="33050"
+export TASK="stack_bowls_in_size_order_rc"
+export MAX_ACTIONS_TO_PUBLISH="3"
+export USE_LAST_ACTIONS="false"
+export ASYNC_MAX_ACTIONS_TO_PUBLISH="32"
+export ASYNC_USE_LAST_ACTIONS="false"
+```
+
+修改前备份在：
+
+```text
+~/桌面/franka_deploy_0128_ee/franka_deploy/config.sh.bak_20260829_pi05_shuo
+```
+
+当前 service 对齐的是 pnp 现有 OpenPI WebSocket client 协议，推荐先跑异步 client：
+
+```bash
+cd ~/桌面/franka_deploy_0128_ee/franka_deploy
+bash start_inference_async.sh
+```
+
+`start_inference.sh` 是同步版本，也能连同一个 service，但一次只发布较短 action chunk。`start_inference_async_rlt.sh` 和 `start_inference_rtc2.sh` 需要 RLT/RTC 专用服务端语义，当前这个 SFT 权重 service 不建议使用。
 
 如果换到 ring 任务，把 prompt 改成：
 

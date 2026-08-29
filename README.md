@@ -34,6 +34,7 @@ RLinf 推荐关注的日志指标是：
 - `README.md`：本文件，具体部署和实验流程。
 - `PI05_RECAP_FRANKA_NOTES.md`：pi05 代码地图、外部链接状态和实验注意事项。
 - `docs/PI06_RECAP_MECHANISM_AND_PLAN.md`：可直接贴到飞书的 pi06/RECAP 机制、pi05 torch 区别和单臂 Franka 30 次 SR 计划。
+- `docs/franka_cs_deployment.md`：amax 推理服务端 + pnp 机器人客户端的 C/S 部署步骤，可直接贴到飞书。
 - `docs/UPSTREAM_RLINF_README.md`：原始 RLinf README 备份。
 - `scripts/franka/download_shuo_pi05_weights.sh`：下载师兄给的 Franka pi0.5 联合微调权重。
 - `evaluations/realworld/realworld_pnp_eval_pi05_sft_RTC.yaml`：单臂 Franka + OpenPI pi0.5 + RTC 测评模板。

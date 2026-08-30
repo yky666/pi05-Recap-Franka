@@ -124,7 +124,7 @@ env:
       use_dense_reward: False
       target_ee_pose: TARGET_EE_POSE
       camera_serials: ["CAMERA_SERIAL1", "CAMERA_SERIAL2"]
-      task_description: "insert_peg_into_hole_rc"
+      task_description: "Insert the peg into the corresponding hole."
       max_num_steps: 240
       binary_gripper_threshold: 0.1
       enable_gripper_penalty: False

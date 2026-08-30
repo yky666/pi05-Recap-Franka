@@ -124,7 +124,7 @@ env:
       use_dense_reward: False
       target_ee_pose: TARGET_EE_POSE
       camera_serials: ["CAMERA_SERIAL1", "CAMERA_SERIAL2"]
-      task_description: "stack_bowls_in_size_order_rc"
+      task_description: "Stack the three bowls in size order: the purple bowl first, then the beige bowl."
       max_num_steps: 240
       binary_gripper_threshold: 0.1
       enable_gripper_penalty: False

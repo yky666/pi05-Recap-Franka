@@ -40,7 +40,7 @@ if [[ ! -f "${DEFAULT_NORM_STATS_PATH}" ]]; then
 fi
 NORM_STATS_PATH="${NORM_STATS_PATH:-${DEFAULT_NORM_STATS_PATH}}"
 POLICY_PORT="${POLICY_PORT:-33050}"
-TASK_PROMPT="${TASK_PROMPT:-stack_bowls_in_size_order_rc}"
+TASK_PROMPT="${TASK_PROMPT:-Stack the three bowls in size order: the purple bowl first, then the beige bowl.}"
 
 if [[ ! -e "${MODEL_PATH}/model.safetensors" ]]; then
   echo "Missing base model: ${MODEL_PATH}/model.safetensors" >&2

@@ -216,18 +216,17 @@ actor:
 
 根据 HF 训练日志，当前权重覆盖的数据目录如下：
 
-| Task YAML | Task id / prompt | 默认 checkpoint |
-| --- | --- | --- |
-| `task01.yaml` | `stack_bowls_in_size_order_rc` | `front2: sft_franka_shuo_pi05/global_step_15000` |
-| `task02.yaml` | `place_ring_on_rod_rc_0810` | `front2: sft_franka_shuo_pi05/global_step_15000` |
-| `task03.yaml` | `place_fruits_on_plate_rc` | `d2: 20260828-080659-franka_pi05_rlinf_d2/global_step_23000` |
-| `task04.yaml` | `plug_charger_into_socket_rc` | `d2: 20260828-080659-franka_pi05_rlinf_d2/global_step_23000` |
-| `task05.yaml` | `insert_peg_into_hole_rc` | `d2: 20260828-080659-franka_pi05_rlinf_d2/global_step_23000` |
+| Task YAML | Task id | Prompt | 默认 checkpoint |
+| --- | --- | --- | --- |
+| `task01.yaml` | `stack_bowls_in_size_order_rc` | `Stack the three bowls in size order: the purple bowl first, then the beige bowl.` | `front2: sft_franka_shuo_pi05/global_step_15000` |
+| `task02.yaml` | `place_ring_on_rod_rc_0810` | `Place the ring on the rod.` | `front2: sft_franka_shuo_pi05/global_step_15000` |
+| `task03.yaml` | `place_fruits_on_plate_rc` | `Place all the fruits on the plate.` | `d2: 20260828-080659-franka_pi05_rlinf_d2/global_step_23000` |
+| `task04.yaml` | `plug_charger_into_socket_rc` | `Plug the charger into the socket.` | `d2: 20260828-080659-franka_pi05_rlinf_d2/global_step_23000` |
+| `task05.yaml` | `insert_peg_into_hole_rc` | `Insert the peg into the corresponding hole.` | `d2: 20260828-080659-franka_pi05_rlinf_d2/global_step_23000` |
 
-训练日志里还包含两个 new-side 数据目录：`new_side/place_ring_on_rod_new_side_rc`、`new_side/plug_charger_into_socket_new_side_rc`、`new_side/insert_peg_into_hole_new_side_rc`。如果实验表格把 new-side 作为独立 task，需要把 pnp `TASK` 和 amax `TASK_PROMPT` 改成对应的 `*_new_side_rc` 字符串，并继续使用同一组 checkpoint / asset id。
+训练日志里还包含 new-side 数据目录：`new_side/place_ring_on_rod_new_side_rc`、`new_side/plug_charger_into_socket_new_side_rc`、`new_side/insert_peg_into_hole_new_side_rc`。如果实验表格把 new-side 作为独立 task，需要先确认对应训练数据 `meta/tasks.jsonl` 里的自然语言 prompt，再把 pnp `TASK` 和 amax `TASK_PROMPT` 精确改成那个原文，并继续使用同一组 checkpoint / asset id。
 
-如果实际训练时用的是自然语言 prompt，而不是上表的 task id 字符串，需要把
-`env.eval.override_cfg.task_description` 改成训练数据里完全一致的文本。
+`TASK_PROMPT` / `TASK` 不是“语义差不多就行”，应使用训练数据里的原始 task description，大小写和标点也保持一致。
 
 ## 4. 配置 5 个任务的 eval YAML
 
@@ -456,7 +455,7 @@ python scripts/franka/serve_shuo_pi05_policy.py \
   --num-action-chunks 32 \
   --num-steps 5 \
   --response-horizon 32 \
-  --default-prompt "stack_bowls_in_size_order_rc"
+  --default-prompt "Stack the three bowls in size order: the purple bowl first, then the beige bowl."
 ```
 
 amax 上已确认存在的 pi0.5 base model 路径是：
@@ -474,12 +473,12 @@ cd /data/yangky/test/pi05-Recap-Franka
 
 # 前两个任务：stack bowls / place ring
 export CKPT_PROFILE=front2
-export TASK_PROMPT=stack_bowls_in_size_order_rc
+export TASK_PROMPT="Stack the three bowls in size order: the purple bowl first, then the beige bowl."
 bash scripts/franka/run_shuo_pi05_service_amax.sh
 
 # 后续 fruits / charger / peg 任务
 export CKPT_PROFILE=d2
-export TASK_PROMPT=place_fruits_on_plate_rc
+export TASK_PROMPT="Place all the fruits on the plate."
 bash scripts/franka/run_shuo_pi05_service_amax.sh
 ```
 
@@ -489,7 +488,7 @@ amax 上已准备好的推理环境是 `/home/amax/venvs/pi05-franka-service`，
 
 ```bash
 tmux new-session -d -s pi05_front2 \
-  'cd /data/yangky/test/pi05-Recap-Franka && export CKPT_PROFILE=front2 TASK_PROMPT=stack_bowls_in_size_order_rc && bash scripts/franka/run_shuo_pi05_service_amax.sh'
+  'cd /data/yangky/test/pi05-Recap-Franka && export CKPT_PROFILE=front2 TASK_PROMPT="Stack the three bowls in size order: the purple bowl first, then the beige bowl." && bash scripts/franka/run_shuo_pi05_service_amax.sh'
 
 tmux attach -t pi05_front2
 ```
@@ -528,7 +527,7 @@ cd ~/桌面/franka_deploy_0128_ee/franka_deploy
 ```bash
 export POLICY_SERVER_HOST="192.168.10.114"
 export POLICY_SERVER_PORT="33050"
-export TASK="stack_bowls_in_size_order_rc"
+export TASK="Stack the three bowls in size order: the purple bowl first, then the beige bowl."
 export MAX_ACTIONS_TO_PUBLISH="3"
 export USE_LAST_ACTIONS="false"
 export ASYNC_MAX_ACTIONS_TO_PUBLISH="32"
@@ -555,7 +554,7 @@ bash start_inference_async.sh
 如果换到 ring 任务，把 prompt 改成：
 
 ```bash
---default-prompt "place_ring_on_rod_rc_0810"
+--default-prompt "Place the ring on the rod."
 ```
 
 服务端接收的 pnp payload 需要包含：
@@ -653,11 +652,11 @@ rg -n "env/success_once|success_once|success" logs/franka_5tasks
 
 | Task | Prompt | Trials | Successes | SR | Checkpoint | Config | Notes |
 | --- | --- | ---: | ---: | ---: | --- | --- | --- |
-| task01 | TBD | 0 | 0 | 0.00 | TBD | `task01.yaml` | TBD |
-| task02 | TBD | 0 | 0 | 0.00 | TBD | `task02.yaml` | TBD |
-| task03 | TBD | 0 | 0 | 0.00 | TBD | `task03.yaml` | TBD |
-| task04 | TBD | 0 | 0 | 0.00 | TBD | `task04.yaml` | TBD |
-| task05 | TBD | 0 | 0 | 0.00 | TBD | `task05.yaml` | TBD |
+| task01 | `Stack the three bowls in size order: the purple bowl first, then the beige bowl.` | 0 | 0 | 0.00 | `front2` | `task01.yaml` | TBD |
+| task02 | `Place the ring on the rod.` | 0 | 0 | 0.00 | `front2` | `task02.yaml` | TBD |
+| task03 | `Place all the fruits on the plate.` | 0 | 0 | 0.00 | `d2` | `task03.yaml` | TBD |
+| task04 | `Plug the charger into the socket.` | 0 | 0 | 0.00 | `d2` | `task04.yaml` | TBD |
+| task05 | `Insert the peg into the corresponding hole.` | 0 | 0 | 0.00 | `d2` | `task05.yaml` | TBD |
 
 计算：
 

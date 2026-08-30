@@ -26,10 +26,10 @@ bash examples/sft/run_vla_sft.sh franka_pi05_rlinf
 
 已知任务：
 
-| Task | Prompt / task id | 模型权重 | 评测次数 | 指标 |
-| --- | --- | --- | ---: | --- |
-| task01 | `stack_bowls_in_size_order_rc` | `sft_franka_shuo_pi05/global_step_15000/full_weights.pt` | 30 | SR |
-| task02 | `place_ring_on_rod_rc_0810` | `sft_franka_shuo_pi05/global_step_15000/full_weights.pt` | 30 | SR |
+| Task | Task id | Prompt | 模型权重 | 评测次数 | 指标 |
+| --- | --- | --- | --- | ---: | --- |
+| task01 | `stack_bowls_in_size_order_rc` | `Stack the three bowls in size order: the purple bowl first, then the beige bowl.` | `sft_franka_shuo_pi05/global_step_15000/full_weights.pt` | 30 | SR |
+| task02 | `place_ring_on_rod_rc_0810` | `Place the ring on the rod.` | `sft_franka_shuo_pi05/global_step_15000/full_weights.pt` | 30 | SR |
 
 SR 计算：
 
@@ -489,10 +489,10 @@ rg -n "env/success_once|success_once|success" logs/franka_5tasks
 
 人工表格统计：
 
-| Task | Trials | Successes | SR |
-| --- | ---: | ---: | ---: |
-| stack_bowls_in_size_order_rc | 30 | TBD | `successes / 30` |
-| place_ring_on_rod_rc_0810 | 30 | TBD | `successes / 30` |
+| Task id | Prompt | Trials | Successes | SR |
+| --- | --- | ---: | ---: | ---: |
+| `stack_bowls_in_size_order_rc` | `Stack the three bowls in size order: the purple bowl first, then the beige bowl.` | 30 | TBD | `successes / 30` |
+| `place_ring_on_rod_rc_0810` | `Place the ring on the rod.` | 30 | TBD | `successes / 30` |
 
 ## 10. 结论
 

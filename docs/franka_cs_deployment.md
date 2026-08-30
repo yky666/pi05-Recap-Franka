@@ -2,7 +2,7 @@
 
 本文档对应当前部署方式：amax 作为推理服务端加载 pi0.5 Franka 权重，pnp 机器作为机器人客户端采集相机 / 机器人状态并通过 WebSocket 请求 action。
 
-五个任务的逐项启动命令见 `docs/franka_5task_launch.md`。`TASK_PROMPT` / `TASK` 应精确匹配训练数据里的 task description；当前五个任务使用仓库 eval YAML 中的 task id 字符串，不要改成自然语言 paraphrase。
+五个任务的逐项启动命令见 `docs/franka_5task_launch.md`。`TASK_PROMPT` / `TASK` 应精确匹配训练数据里的 task description；当前五个任务使用自然语言 prompt，不要用 task id 或 paraphrase 替代。
 
 ## 1. 机器和端口
 
@@ -22,10 +22,13 @@ amax 上 pi0.5 base model 路径：
 
 这个 base 不是最终策略。服务启动时会先用它实例化 OpenPI/RLinf 的 pi0.5 模型结构，然后加载师兄训练得到的 `full_weights.pt` 覆盖 actor 权重。
 
-| Profile | 任务 | checkpoint | norm stats |
-| --- | --- | --- | --- |
-| `front2` | `stack_bowls_in_size_order_rc`, `place_ring_on_rod_rc_0810` | `/home/amax/checkpoints/pi05-Recap-Franka/sft_franka_shuo_pi05/checkpoints/global_step_15000/actor/model_state_dict/full_weights.pt` | `/home/amax/checkpoints/pi05-Recap-Franka/assets/franka_shuo_bowls_ring/norm_stats.json` |
-| `d2` | `place_fruits_on_plate_rc`, `plug_charger_into_socket_rc`, `insert_peg_into_hole_rc` | `/home/amax/checkpoints/pi05-Recap-Franka/20260828-080659-franka_pi05_rlinf_d2/sft_franka_shuo_pi05/checkpoints/global_step_23000/actor/model_state_dict/full_weights.pt` | `/home/amax/checkpoints/pi05-Recap-Franka/assets/franka_shuo_fruits_charger_peg/norm_stats.json` |
+| Profile | Task id | Prompt | checkpoint | norm stats |
+| --- | --- | --- | --- | --- |
+| `front2` | `stack_bowls_in_size_order_rc` | `Stack the three bowls in size order: the purple bowl first, then the beige bowl.` | `/home/amax/checkpoints/pi05-Recap-Franka/sft_franka_shuo_pi05/checkpoints/global_step_15000/actor/model_state_dict/full_weights.pt` | `/home/amax/checkpoints/pi05-Recap-Franka/assets/franka_shuo_bowls_ring/norm_stats.json` |
+| `front2` | `place_ring_on_rod_rc_0810` | `Place the ring on the rod.` | `/home/amax/checkpoints/pi05-Recap-Franka/sft_franka_shuo_pi05/checkpoints/global_step_15000/actor/model_state_dict/full_weights.pt` | `/home/amax/checkpoints/pi05-Recap-Franka/assets/franka_shuo_bowls_ring/norm_stats.json` |
+| `d2` | `place_fruits_on_plate_rc` | `Place all the fruits on the plate.` | `/home/amax/checkpoints/pi05-Recap-Franka/20260828-080659-franka_pi05_rlinf_d2/sft_franka_shuo_pi05/checkpoints/global_step_23000/actor/model_state_dict/full_weights.pt` | `/home/amax/checkpoints/pi05-Recap-Franka/assets/franka_shuo_fruits_charger_peg/norm_stats.json` |
+| `d2` | `plug_charger_into_socket_rc` | `Plug the charger into the socket.` | `/home/amax/checkpoints/pi05-Recap-Franka/20260828-080659-franka_pi05_rlinf_d2/sft_franka_shuo_pi05/checkpoints/global_step_23000/actor/model_state_dict/full_weights.pt` | `/home/amax/checkpoints/pi05-Recap-Franka/assets/franka_shuo_fruits_charger_peg/norm_stats.json` |
+| `d2` | `insert_peg_into_hole_rc` | `Insert the peg into the corresponding hole.` | `/home/amax/checkpoints/pi05-Recap-Franka/20260828-080659-franka_pi05_rlinf_d2/sft_franka_shuo_pi05/checkpoints/global_step_23000/actor/model_state_dict/full_weights.pt` | `/home/amax/checkpoints/pi05-Recap-Franka/assets/franka_shuo_fruits_charger_peg/norm_stats.json` |
 
 HF 训练日志里还包含 new-side 数据目录：
 
@@ -35,7 +38,7 @@ new_side/plug_charger_into_socket_new_side_rc
 new_side/insert_peg_into_hole_new_side_rc
 ```
 
-如果实验表格把 new-side 当独立任务，服务端 `TASK_PROMPT` 和 pnp 端 `TASK` 要改成对应的 `*_new_side_rc`。
+如果实验表格把 new-side 当独立任务，需要先确认对应训练数据 `meta/tasks.jsonl` 里的自然语言 prompt；服务端 `TASK_PROMPT` 和 pnp 端 `TASK` 都要改成同一条原文。
 
 ## 3. amax 下载权重
 
@@ -84,7 +87,7 @@ amax 上已准备好的推理 venv：
 ```bash
 cd /data/yangky/test/pi05-Recap-Franka
 export CKPT_PROFILE=front2
-export TASK_PROMPT=stack_bowls_in_size_order_rc
+export TASK_PROMPT="Stack the three bowls in size order: the purple bowl first, then the beige bowl."
 bash scripts/franka/run_shuo_pi05_service_amax.sh
 ```
 
@@ -92,7 +95,7 @@ bash scripts/franka/run_shuo_pi05_service_amax.sh
 
 ```bash
 tmux new-session -d -s pi05_front2 \
-  'cd /data/yangky/test/pi05-Recap-Franka && export CKPT_PROFILE=front2 TASK_PROMPT=stack_bowls_in_size_order_rc && bash scripts/franka/run_shuo_pi05_service_amax.sh'
+  'cd /data/yangky/test/pi05-Recap-Franka && export CKPT_PROFILE=front2 TASK_PROMPT="Stack the three bowls in size order: the purple bowl first, then the beige bowl." && bash scripts/franka/run_shuo_pi05_service_amax.sh'
 
 tmux attach -t pi05_front2
 ```
@@ -101,7 +104,7 @@ tmux attach -t pi05_front2
 
 ```bash
 export CKPT_PROFILE=front2
-export TASK_PROMPT=place_ring_on_rod_rc_0810
+export TASK_PROMPT="Place the ring on the rod."
 bash scripts/franka/run_shuo_pi05_service_amax.sh
 ```
 
@@ -109,15 +112,15 @@ bash scripts/franka/run_shuo_pi05_service_amax.sh
 
 ```bash
 export CKPT_PROFILE=d2
-export TASK_PROMPT=place_fruits_on_plate_rc
+export TASK_PROMPT="Place all the fruits on the plate."
 bash scripts/franka/run_shuo_pi05_service_amax.sh
 ```
 
 其它 d2 任务只改 `TASK_PROMPT`：
 
 ```bash
-export TASK_PROMPT=plug_charger_into_socket_rc
-export TASK_PROMPT=insert_peg_into_hole_rc
+export TASK_PROMPT="Plug the charger into the socket."
+export TASK_PROMPT="Insert the peg into the corresponding hole."
 ```
 
 服务成功启动时会打印：
@@ -172,20 +175,20 @@ grep -nE 'POLICY_SERVER_HOST|POLICY_SERVER_PORT|export TASK=|MAX_ACTIONS_TO_PUBL
 ```bash
 export POLICY_SERVER_HOST="192.168.10.114"
 export POLICY_SERVER_PORT="33050"
-export TASK="stack_bowls_in_size_order_rc"
+export TASK="Stack the three bowls in size order: the purple bowl first, then the beige bowl."
 export MAX_ACTIONS_TO_PUBLISH="3"
 export USE_LAST_ACTIONS="false"
 export ASYNC_MAX_ACTIONS_TO_PUBLISH="32"
 export ASYNC_USE_LAST_ACTIONS="false"
 ```
 
-切任务时同步修改 pnp 的 `TASK` 和 amax 的 `TASK_PROMPT`：
+切任务时同步修改 pnp 的 `TASK` 和 amax 的 `TASK_PROMPT`，二者都使用同一个自然语言 prompt：
 
 ```bash
-export TASK="place_ring_on_rod_rc_0810"
-export TASK="place_fruits_on_plate_rc"
-export TASK="plug_charger_into_socket_rc"
-export TASK="insert_peg_into_hole_rc"
+export TASK="Place the ring on the rod."
+export TASK="Place all the fruits on the plate."
+export TASK="Plug the charger into the socket."
+export TASK="Insert the peg into the corresponding hole."
 ```
 
 pnp 当前配置备份：
@@ -222,21 +225,21 @@ start_inference_rtc2.sh
 
 每个 task 做 30 次：
 
-1. 在 amax 上选择正确 `CKPT_PROFILE` 和 `TASK_PROMPT`，启动 service。
-2. 在 pnp 的 `config.sh` 中把 `TASK` 改成同一个 task id。
+1. 在 amax 上选择正确 `CKPT_PROFILE` 和自然语言 `TASK_PROMPT`，启动 service。
+2. 在 pnp 的 `config.sh` 中把 `TASK` 改成同一个自然语言 prompt。
 3. pnp 启动 `bash start_inference_async.sh`。
 4. 每次 episode 结束记录 success / failure。
 5. SR 计算：`SR = success_count / 30`。
 
 建议记录表头：
 
-| Task | CKPT_PROFILE | Trial | Success | Failure reason | Note |
-| --- | --- | --- | --- | --- | --- |
-| `stack_bowls_in_size_order_rc` | `front2` | 1-30 | 0/1 | 失败原因 | 环境/相机/异常 |
-| `place_ring_on_rod_rc_0810` | `front2` | 1-30 | 0/1 | 失败原因 | 环境/相机/异常 |
-| `place_fruits_on_plate_rc` | `d2` | 1-30 | 0/1 | 失败原因 | 环境/相机/异常 |
-| `plug_charger_into_socket_rc` | `d2` | 1-30 | 0/1 | 失败原因 | 环境/相机/异常 |
-| `insert_peg_into_hole_rc` | `d2` | 1-30 | 0/1 | 失败原因 | 环境/相机/异常 |
+| Task id | Prompt | CKPT_PROFILE | Trial | Success | Failure reason | Note |
+| --- | --- | --- | --- | --- | --- | --- |
+| `stack_bowls_in_size_order_rc` | `Stack the three bowls in size order: the purple bowl first, then the beige bowl.` | `front2` | 1-30 | 0/1 | 失败原因 | 环境/相机/异常 |
+| `place_ring_on_rod_rc_0810` | `Place the ring on the rod.` | `front2` | 1-30 | 0/1 | 失败原因 | 环境/相机/异常 |
+| `place_fruits_on_plate_rc` | `Place all the fruits on the plate.` | `d2` | 1-30 | 0/1 | 失败原因 | 环境/相机/异常 |
+| `plug_charger_into_socket_rc` | `Plug the charger into the socket.` | `d2` | 1-30 | 0/1 | 失败原因 | 环境/相机/异常 |
+| `insert_peg_into_hole_rc` | `Insert the peg into the corresponding hole.` | `d2` | 1-30 | 0/1 | 失败原因 | 环境/相机/异常 |
 
 ## 8. 常见问题
 
@@ -281,6 +284,6 @@ bash scripts/franka/download_shuo_pi05_weights.sh
 
 优先检查三件事：
 
-1. amax 的 `TASK_PROMPT` 和 pnp 的 `TASK` 是否完全一致。
+1. amax 的 `TASK_PROMPT` 和 pnp 的 `TASK` 是否完全一致，且是否为上表自然语言 prompt。
 2. `CKPT_PROFILE` 是否和 task 组匹配：前两个用 `front2`，后面 fruits/charger/peg 用 `d2`。
 3. pnp 相机 key 是否仍是 service 兼容的 `observation/global_image`、`observation/right_image`、`observation/wrist_image`。

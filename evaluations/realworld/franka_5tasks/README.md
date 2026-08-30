@@ -2,13 +2,16 @@
 
 This directory contains five real-world Franka evaluation templates derived from `evaluations/realworld/realworld_pnp_eval_pi05_sft_RTC.yaml`.
 
-`task01.yaml` and `task02.yaml` are pre-filled for the two tasks covered by the
-provided `sft_franka_shuo_pi05` joint finetuned checkpoint:
+The five templates are pre-filled for the current Franka task prompts and the
+two provided Shuo pi0.5 checkpoints:
 
-| Config | Task id / prompt | Checkpoint |
-| --- | --- | --- |
-| `task01.yaml` | `stack_bowls_in_size_order_rc` | `checkpoints/sft_franka_shuo_pi05/checkpoints/global_step_15000/actor/model_state_dict/full_weights.pt` |
-| `task02.yaml` | `place_ring_on_rod_rc_0810` | `checkpoints/sft_franka_shuo_pi05/checkpoints/global_step_15000/actor/model_state_dict/full_weights.pt` |
+| Config | Task id | Prompt | Checkpoint |
+| --- | --- | --- | --- |
+| `task01.yaml` | `stack_bowls_in_size_order_rc` | `Stack the three bowls in size order: the purple bowl first, then the beige bowl.` | `checkpoints/sft_franka_shuo_pi05/checkpoints/global_step_15000/actor/model_state_dict/full_weights.pt` |
+| `task02.yaml` | `place_ring_on_rod_rc_0810` | `Place the ring on the rod.` | `checkpoints/sft_franka_shuo_pi05/checkpoints/global_step_15000/actor/model_state_dict/full_weights.pt` |
+| `task03.yaml` | `place_fruits_on_plate_rc` | `Place all the fruits on the plate.` | `checkpoints/20260828-080659-franka_pi05_rlinf_d2/sft_franka_shuo_pi05/checkpoints/global_step_23000/actor/model_state_dict/full_weights.pt` |
+| `task04.yaml` | `plug_charger_into_socket_rc` | `Plug the charger into the socket.` | `checkpoints/20260828-080659-franka_pi05_rlinf_d2/sft_franka_shuo_pi05/checkpoints/global_step_23000/actor/model_state_dict/full_weights.pt` |
+| `task05.yaml` | `insert_peg_into_hole_rc` | `Insert the peg into the corresponding hole.` | `checkpoints/20260828-080659-franka_pi05_rlinf_d2/sft_franka_shuo_pi05/checkpoints/global_step_23000/actor/model_state_dict/full_weights.pt` |
 
 Download the checkpoint from repo root:
 

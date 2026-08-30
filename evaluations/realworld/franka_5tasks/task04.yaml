@@ -124,7 +124,7 @@ env:
       use_dense_reward: False
       target_ee_pose: TARGET_EE_POSE
       camera_serials: ["CAMERA_SERIAL1", "CAMERA_SERIAL2"]
-      task_description: "plug_charger_into_socket_rc"
+      task_description: "Plug the charger into the socket."
       max_num_steps: 240
       binary_gripper_threshold: 0.1
       enable_gripper_penalty: False

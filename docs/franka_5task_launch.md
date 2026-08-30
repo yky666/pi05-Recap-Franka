@@ -8,33 +8,31 @@
 
 ## Prompt 要求
 
-`TASK_PROMPT` / `TASK` 应精确匹配训练数据里的 task description。当前仓库的
-`evaluations/realworld/franka_5tasks/task*.yaml` 中写死的 `task_description`
-就是下面五个字符串。
+`TASK_PROMPT` / `TASK` 应精确匹配训练数据里的 task description。当前这套
+Shuo pi0.5 Franka 权重使用下面五个自然语言 prompt；task id 只作为任务选择器和
+实验记录名，不应直接作为模型语言条件。
 
-不要把它改成自然语言 paraphrase，例如不要把
-`stack_bowls_in_size_order_rc` 改成 `Stack bowls in size order`。如果训练数据的
-`meta/tasks.jsonl` 使用的是自然语言文本，则应改成那个文件里的原文；在当前这套
-Shuo pi0.5 Franka 权重里，按仓库 eval YAML 使用这些 task id 字符串。
+不要 paraphrase，例如不要把 `Place the ring on the rod.` 改成
+`put the ring on the pole`。大小写、标点也建议保持一致。
 
 amax 的 `TASK_PROMPT` 和 pnp 的 `config.sh` 里的 `TASK` 必须完全一致。
 
 ## Task/Weight 对应表
 
-| Task | CKPT_PROFILE | Checkpoint | Norm stats |
-| --- | --- | --- | --- |
-| `stack_bowls_in_size_order_rc` | `front2` | `/home/amax/checkpoints/pi05-Recap-Franka/sft_franka_shuo_pi05/checkpoints/global_step_15000/actor/model_state_dict/full_weights.pt` | `/home/amax/checkpoints/pi05-Recap-Franka/assets/franka_shuo_bowls_ring/norm_stats.json` |
-| `place_ring_on_rod_rc_0810` | `front2` | `/home/amax/checkpoints/pi05-Recap-Franka/sft_franka_shuo_pi05/checkpoints/global_step_15000/actor/model_state_dict/full_weights.pt` | `/home/amax/checkpoints/pi05-Recap-Franka/assets/franka_shuo_bowls_ring/norm_stats.json` |
-| `place_fruits_on_plate_rc` | `d2` | `/home/amax/checkpoints/pi05-Recap-Franka/20260828-080659-franka_pi05_rlinf_d2/sft_franka_shuo_pi05/checkpoints/global_step_23000/actor/model_state_dict/full_weights.pt` | `/home/amax/checkpoints/pi05-Recap-Franka/assets/franka_shuo_fruits_charger_peg/norm_stats.json` |
-| `plug_charger_into_socket_rc` | `d2` | `/home/amax/checkpoints/pi05-Recap-Franka/20260828-080659-franka_pi05_rlinf_d2/sft_franka_shuo_pi05/checkpoints/global_step_23000/actor/model_state_dict/full_weights.pt` | `/home/amax/checkpoints/pi05-Recap-Franka/assets/franka_shuo_fruits_charger_peg/norm_stats.json` |
-| `insert_peg_into_hole_rc` | `d2` | `/home/amax/checkpoints/pi05-Recap-Franka/20260828-080659-franka_pi05_rlinf_d2/sft_franka_shuo_pi05/checkpoints/global_step_23000/actor/model_state_dict/full_weights.pt` | `/home/amax/checkpoints/pi05-Recap-Franka/assets/franka_shuo_fruits_charger_peg/norm_stats.json` |
+| Task id | Prompt | CKPT_PROFILE | Checkpoint | Norm stats |
+| --- | --- | --- | --- | --- |
+| `stack_bowls_in_size_order_rc` | `Stack the three bowls in size order: the purple bowl first, then the beige bowl.` | `front2` | `/home/amax/checkpoints/pi05-Recap-Franka/sft_franka_shuo_pi05/checkpoints/global_step_15000/actor/model_state_dict/full_weights.pt` | `/home/amax/checkpoints/pi05-Recap-Franka/assets/franka_shuo_bowls_ring/norm_stats.json` |
+| `place_ring_on_rod_rc_0810` | `Place the ring on the rod.` | `front2` | `/home/amax/checkpoints/pi05-Recap-Franka/sft_franka_shuo_pi05/checkpoints/global_step_15000/actor/model_state_dict/full_weights.pt` | `/home/amax/checkpoints/pi05-Recap-Franka/assets/franka_shuo_bowls_ring/norm_stats.json` |
+| `place_fruits_on_plate_rc` | `Place all the fruits on the plate.` | `d2` | `/home/amax/checkpoints/pi05-Recap-Franka/20260828-080659-franka_pi05_rlinf_d2/sft_franka_shuo_pi05/checkpoints/global_step_23000/actor/model_state_dict/full_weights.pt` | `/home/amax/checkpoints/pi05-Recap-Franka/assets/franka_shuo_fruits_charger_peg/norm_stats.json` |
+| `plug_charger_into_socket_rc` | `Plug the charger into the socket.` | `d2` | `/home/amax/checkpoints/pi05-Recap-Franka/20260828-080659-franka_pi05_rlinf_d2/sft_franka_shuo_pi05/checkpoints/global_step_23000/actor/model_state_dict/full_weights.pt` | `/home/amax/checkpoints/pi05-Recap-Franka/assets/franka_shuo_fruits_charger_peg/norm_stats.json` |
+| `insert_peg_into_hole_rc` | `Insert the peg into the corresponding hole.` | `d2` | `/home/amax/checkpoints/pi05-Recap-Franka/20260828-080659-franka_pi05_rlinf_d2/sft_franka_shuo_pi05/checkpoints/global_step_23000/actor/model_state_dict/full_weights.pt` | `/home/amax/checkpoints/pi05-Recap-Franka/assets/franka_shuo_fruits_charger_peg/norm_stats.json` |
 
 ## 通用切换流程
 
 1. pnp 上停掉当前控制节点和推理节点：两个终端分别 `Ctrl+C`。
 2. amax 上停掉当前 policy service。
-3. amax 按目标 task 启动对应 `CKPT_PROFILE` 和 `TASK_PROMPT`。
-4. pnp 的 `config.sh` 中把 `TASK` 改成完全相同的 task id。
+3. amax 按目标 task 启动对应 `CKPT_PROFILE` 和自然语言 `TASK_PROMPT`。
+4. pnp 的 `config.sh` 中把 `TASK` 改成完全相同的自然语言 prompt。
 5. pnp 启动 `bash start_control_async.sh` 和 `bash start_inference_async.sh`。
 
 检查 amax service：
@@ -82,7 +80,7 @@ amax:
 tmux kill-session -t pi05_front2 2>/dev/null || true
 tmux kill-session -t pi05_stack_bowls 2>/dev/null || true
 tmux new-session -d -s pi05_stack_bowls \
-  'cd /data/yangky/test/pi05-Recap-Franka && export CKPT_PROFILE=front2 TASK_PROMPT=stack_bowls_in_size_order_rc && bash scripts/franka/run_shuo_pi05_service_amax.sh'
+  'cd /data/yangky/test/pi05-Recap-Franka && export CKPT_PROFILE=front2 TASK_PROMPT="Stack the three bowls in size order: the purple bowl first, then the beige bowl." && bash scripts/franka/run_shuo_pi05_service_amax.sh'
 tmux capture-pane -t pi05_stack_bowls -p | tail -n 80
 ```
 
@@ -90,7 +88,7 @@ pnp:
 
 ```bash
 cd ~/桌面/franka_deploy_0128_ee/franka_deploy
-perl -0pi -e 's/export TASK="[^"]+"/export TASK="stack_bowls_in_size_order_rc"/' config.sh
+perl -0pi -e 's/export TASK="[^"]+"/export TASK="Stack the three bowls in size order: the purple bowl first, then the beige bowl."/' config.sh
 bash start_control_async.sh
 bash start_inference_async.sh
 ```
@@ -103,7 +101,7 @@ amax:
 tmux kill-session -t pi05_front2 2>/dev/null || true
 tmux kill-session -t pi05_place_ring 2>/dev/null || true
 tmux new-session -d -s pi05_place_ring \
-  'cd /data/yangky/test/pi05-Recap-Franka && export CKPT_PROFILE=front2 TASK_PROMPT=place_ring_on_rod_rc_0810 && bash scripts/franka/run_shuo_pi05_service_amax.sh'
+  'cd /data/yangky/test/pi05-Recap-Franka && export CKPT_PROFILE=front2 TASK_PROMPT="Place the ring on the rod." && bash scripts/franka/run_shuo_pi05_service_amax.sh'
 tmux capture-pane -t pi05_place_ring -p | tail -n 80
 ```
 
@@ -111,7 +109,7 @@ pnp:
 
 ```bash
 cd ~/桌面/franka_deploy_0128_ee/franka_deploy
-perl -0pi -e 's/export TASK="[^"]+"/export TASK="place_ring_on_rod_rc_0810"/' config.sh
+perl -0pi -e 's/export TASK="[^"]+"/export TASK="Place the ring on the rod."/' config.sh
 bash start_control_async.sh
 bash start_inference_async.sh
 ```
@@ -124,7 +122,7 @@ amax:
 tmux kill-session -t pi05_front2 2>/dev/null || true
 tmux kill-session -t pi05_place_fruits 2>/dev/null || true
 tmux new-session -d -s pi05_place_fruits \
-  'cd /data/yangky/test/pi05-Recap-Franka && export CKPT_PROFILE=d2 TASK_PROMPT=place_fruits_on_plate_rc && bash scripts/franka/run_shuo_pi05_service_amax.sh'
+  'cd /data/yangky/test/pi05-Recap-Franka && export CKPT_PROFILE=d2 TASK_PROMPT="Place all the fruits on the plate." && bash scripts/franka/run_shuo_pi05_service_amax.sh'
 tmux capture-pane -t pi05_place_fruits -p | tail -n 80
 ```
 
@@ -132,7 +130,7 @@ pnp:
 
 ```bash
 cd ~/桌面/franka_deploy_0128_ee/franka_deploy
-perl -0pi -e 's/export TASK="[^"]+"/export TASK="place_fruits_on_plate_rc"/' config.sh
+perl -0pi -e 's/export TASK="[^"]+"/export TASK="Place all the fruits on the plate."/' config.sh
 bash start_control_async.sh
 bash start_inference_async.sh
 ```
@@ -145,7 +143,7 @@ amax:
 tmux kill-session -t pi05_front2 2>/dev/null || true
 tmux kill-session -t pi05_plug_charger 2>/dev/null || true
 tmux new-session -d -s pi05_plug_charger \
-  'cd /data/yangky/test/pi05-Recap-Franka && export CKPT_PROFILE=d2 TASK_PROMPT=plug_charger_into_socket_rc && bash scripts/franka/run_shuo_pi05_service_amax.sh'
+  'cd /data/yangky/test/pi05-Recap-Franka && export CKPT_PROFILE=d2 TASK_PROMPT="Plug the charger into the socket." && bash scripts/franka/run_shuo_pi05_service_amax.sh'
 tmux capture-pane -t pi05_plug_charger -p | tail -n 80
 ```
 
@@ -153,7 +151,7 @@ pnp:
 
 ```bash
 cd ~/桌面/franka_deploy_0128_ee/franka_deploy
-perl -0pi -e 's/export TASK="[^"]+"/export TASK="plug_charger_into_socket_rc"/' config.sh
+perl -0pi -e 's/export TASK="[^"]+"/export TASK="Plug the charger into the socket."/' config.sh
 bash start_control_async.sh
 bash start_inference_async.sh
 ```
@@ -166,7 +164,7 @@ amax:
 tmux kill-session -t pi05_front2 2>/dev/null || true
 tmux kill-session -t pi05_insert_peg 2>/dev/null || true
 tmux new-session -d -s pi05_insert_peg \
-  'cd /data/yangky/test/pi05-Recap-Franka && export CKPT_PROFILE=d2 TASK_PROMPT=insert_peg_into_hole_rc && bash scripts/franka/run_shuo_pi05_service_amax.sh'
+  'cd /data/yangky/test/pi05-Recap-Franka && export CKPT_PROFILE=d2 TASK_PROMPT="Insert the peg into the corresponding hole." && bash scripts/franka/run_shuo_pi05_service_amax.sh'
 tmux capture-pane -t pi05_insert_peg -p | tail -n 80
 ```
 
@@ -174,7 +172,7 @@ pnp:
 
 ```bash
 cd ~/桌面/franka_deploy_0128_ee/franka_deploy
-perl -0pi -e 's/export TASK="[^"]+"/export TASK="insert_peg_into_hole_rc"/' config.sh
+perl -0pi -e 's/export TASK="[^"]+"/export TASK="Insert the peg into the corresponding hole."/' config.sh
 bash start_control_async.sh
 bash start_inference_async.sh
 ```

@@ -231,6 +231,27 @@ start_inference_rtc2.sh
 4. 每次 episode 结束记录 success / failure。
 5. SR 计算：`SR = success_count / 30`。
 
+如果后续要跑 RECAP，不要只记录 SR 表格。pnp 异步 client 每次启动会保存一个原始 rollout session：
+
+```text
+/home/pnp/桌面/franka_deploy_0128_ee/franka_deploy/logs/session_async_YYYYMMDD_HHMMSS/
+```
+
+每个 session 至少包含 `actions.json`、`frame_states.json`、`images/` 和 `videos/`。每次 trial 结束后，用仓库脚本给该 session 打 `is_success`：
+
+```bash
+cd /home/pnp/桌面/franka_deploy_0128_ee/franka_deploy
+python3 label_pnp_session.py logs/session_async_YYYYMMDD_HHMMSS \
+  --success 1 \
+  --trial 1 \
+  --task-id stack_bowls_in_size_order_rc \
+  --prompt "Stack the three bowls in size order: the purple bowl first, then the beige bowl." \
+  --checkpoint-profile front2 \
+  --notes "success"
+```
+
+详细步骤见 `docs/franka_recap_rollout_labeling.md`。
+
 建议记录表头：
 
 | Task id | Prompt | CKPT_PROFILE | Trial | Success | Failure reason | Note |

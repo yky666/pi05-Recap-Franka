@@ -2,6 +2,8 @@
 
 本文档对应当前部署方式：amax 作为推理服务端加载 pi0.5 Franka 权重，pnp 机器作为机器人客户端采集相机 / 机器人状态并通过 WebSocket 请求 action。
 
+五个任务的逐项启动命令见 `docs/franka_5task_launch.md`。`TASK_PROMPT` / `TASK` 应精确匹配训练数据里的 task description；当前五个任务使用仓库 eval YAML 中的 task id 字符串，不要改成自然语言 paraphrase。
+
 ## 1. 机器和端口
 
 | 角色 | 机器 | 地址 | 说明 |

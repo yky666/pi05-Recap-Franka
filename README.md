@@ -520,6 +520,8 @@ ssh pnp@192.168.10.110
 cd ~/桌面/franka_deploy_0128_ee/franka_deploy
 ```
 
+注意：`启动命令.txt` / `start_all.sh` 可能仍是旧同步流程的参考命令。如果看到 `start_control.sh` 或 `start_inference.sh`，不要按它执行；当前 pi05 async 链路必须使用 `start_control_async.sh` + `start_inference_async.sh`。
+
 实际配置文件是 `config.sh`，当前已改成：
 
 ```bash

@@ -157,6 +157,8 @@ ssh pnp@192.168.10.110
 cd ~/桌面/franka_deploy_0128_ee/franka_deploy
 ```
 
+注意：目录里的 `启动命令.txt` / `start_all.sh` 可能是旧同步流程生成的参考命令。如果看到 `start_control.sh` 或 `start_inference.sh`，不要按它执行；当前 pi05 async 链路必须使用 `start_control_async.sh` + `start_inference_async.sh`。
+
 检查 `config.sh`：
 
 ```bash

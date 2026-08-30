@@ -124,6 +124,25 @@ export TASK_PROMPT=insert_peg_into_hole_rc
 SERVER READY: ws://0.0.0.0:33050
 ```
 
+如果再次运行脚本出现：
+
+```text
+OSError: [Errno 98] Address already in use
+```
+
+说明 `33050` 上已经有一个服务在跑，不是权重或依赖失败。先检查：
+
+```bash
+ss -ltnp | grep 33050
+tmux capture-pane -t pi05_front2 -p | tail -n 80
+```
+
+需要重启时再停止旧服务：
+
+```bash
+tmux kill-session -t pi05_front2
+```
+
 ## 5. pnp 配置客户端
 
 登录 pnp：

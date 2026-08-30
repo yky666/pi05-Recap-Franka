@@ -499,6 +499,14 @@ tmux attach -t pi05_front2
 SERVER READY: ws://0.0.0.0:33050
 ```
 
+如果看到 `OSError: [Errno 98] Address already in use`，说明 `33050` 上已经有一个服务在跑，不是权重或依赖失败。检查和重启：
+
+```bash
+ss -ltnp | grep 33050
+tmux capture-pane -t pi05_front2 -p | tail -n 80
+tmux kill-session -t pi05_front2
+```
+
 pnp client 连接地址填：
 
 ```text

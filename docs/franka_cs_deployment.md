@@ -252,6 +252,10 @@ python3 label_pnp_session.py logs/session_async_YYYYMMDD_HHMMSS \
 
 详细步骤见 `docs/franka_recap_rollout_labeling.md`。
 
+注意：amax 的 `TASK_PROMPT` 只是服务端 fallback。pnp client 会发送 `config.sh`
+里的 `TASK`，服务端优先采用该 payload。因此切换到 ring / fruits / charger /
+peg 时必须同时修改 amax 的 `TASK_PROMPT` 和 pnp 的 `export TASK`。
+
 建议记录表头：
 
 | Task id | Prompt | CKPT_PROFILE | Trial | Success | Failure reason | Note |

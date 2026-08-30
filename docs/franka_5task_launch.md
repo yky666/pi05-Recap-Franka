@@ -17,6 +17,11 @@ Shuo pi0.5 Franka 权重使用下面五个自然语言 prompt；task id 只作�
 
 amax 的 `TASK_PROMPT` 和 pnp 的 `config.sh` 里的 `TASK` 必须完全一致。
 
+服务端 `TASK_PROMPT` 只会作为 `--default-prompt` fallback。当前 pnp client
+会在每个 WebSocket 请求里发送 `prompt/task`，服务端会优先使用 client payload。
+因此只在 amax 上 `export TASK_PROMPT=...` 不足以切换任务；pnp 的 `export TASK`
+如果没改，仍会覆盖服务端默认 prompt。
+
 ## Task/Weight 对应表
 
 | Task id | Prompt | CKPT_PROFILE | Checkpoint | Norm stats |

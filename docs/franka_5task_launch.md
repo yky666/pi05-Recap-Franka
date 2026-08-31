@@ -39,6 +39,8 @@ amax 的 `TASK_PROMPT` 和 pnp 的 `config.sh` 里的 `TASK` 必须完全一致�
 3. amax 按目标 task 启动对应 `CKPT_PROFILE` 和自然语言 `TASK_PROMPT`。
 4. pnp 的 `config.sh` 中把 `TASK` 改成完全相同的自然语言 prompt。
 5. pnp 启动 `bash start_control_async.sh` 和 `bash start_inference_async.sh`。
+6. 每个 trial 结束后记录最新 `logs/session_async_*` 目录，并用 `label_pnp_session.py` 标注 `is_success`。
+7. 每个 task 选定 30 个正式 trial 后，计算 `SR = success_count / 30`。
 
 检查 amax service：
 
@@ -76,6 +78,25 @@ ros2 topic info /franka/ee_states -v
 cd /data/yangky/test/pi05-Recap-Franka
 bash scripts/franka/print_5task_launch_commands.sh stack_bowls_in_size_order_rc
 ```
+
+每个 trial 结束后，在 pnp 上记录并标注最新 session：
+
+```bash
+cd ~/桌面/franka_deploy_0128_ee/franka_deploy
+latest_session="$(ls -dt logs/session_async_* | head -1)"
+echo "${latest_session}"
+
+python3 label_pnp_session.py "${latest_session}" \
+  --success 1 \
+  --trial 1 \
+  --task-id <task_id> \
+  --prompt "<exact_prompt>" \
+  --checkpoint-profile <front2_or_d2> \
+  --notes "success"
+```
+
+失败时把 `--success 1` 改成 `--success 0`，并在 `--notes` 写失败原因。
+完整 rollout 保存和 RECAP 标注说明见 `docs/franka_recap_rollout_labeling.md`。
 
 ## 1. stack_bowls_in_size_order_rc
 

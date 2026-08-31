@@ -361,6 +361,16 @@ python3 label_pnp_session.py logs/session_async_YYYYMMDD_HHMMSS \
 
 fruits / charger / peg 的流程相同，但 `CKPT_PROFILE=d2`，并使用对应 prompt。完整五任务启动命令见 `docs/franka_5task_launch.md`。
 
+每个新任务建议按下面顺序执行：
+
+1. 在 amax 运行 `bash scripts/franka/print_5task_launch_commands.sh <task_id>`，复制输出的 amax 命令启动 service。
+2. 在 pnp 按输出命令修改 `config.sh` 里的 `export TASK`。
+3. pnp 分别启动 `bash start_control_async.sh` 和 `bash start_inference_async.sh`。
+4. 完成一个 trial 后，在 pnp 记录 `latest_session="$(ls -dt logs/session_async_* | head -1)"`。
+5. 用 `label_pnp_session.py "${latest_session}" ...` 标注成功或失败。
+6. 每个 task 保留 30 个正式 trial，额外 warmup/debug session 可以保留但不要纳入 SR。
+7. 30 个正式 trial 标注完成后，从 `logs/recap_episode_labels.csv` 汇总 `success_count / 30`。
+
 ## 8. 当前注意事项
 
 1. pnp 当前 `config.sh` 必须使用训练原文 prompt，不能使用 task id。当前 bowls 应为 `export TASK="Stack the three bowls in size order: the purple bowl first, then the beige bowl."`。

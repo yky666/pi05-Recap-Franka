@@ -34,6 +34,8 @@ Working interpretation for this repo:
 - Feishu experiment table: `https://my.feishu.cn/wiki/KZt5wzJTZiq8QskT0qKcoKS5nwc?from=from_copylink`
 - Teacher-provided RLT/OpenPI code: `https://github.com/jianzhang96/rlt-openpi`
 - Teacher-provided RealWorld-RLinf toolkit path: `https://github.com/1018weijia/RealWorld-RLinf/tree/main/toolkits/`
+- Real-world stack-bowls RECAP dataset/training note: `docs/realworld_recap_stack_bowls.md`
+- Feishu paste version for the same note: `docs/feishu/recap_stack_bowls_feishu.md`
 
 Access status from this environment:
 
@@ -128,6 +130,39 @@ How this maps to the current repo:
 - Use keyboard / human control wrappers for success/failure labels and intervention/takeover control.
 - Archive rollouts in LeRobot-style datasets so RECAP can compute returns, train the value model, compute advantages, and then run CFG policy training.
 - Use RECAP as the offline stage after collecting SFT plus rollout/takeover data; use the real-world eval configs for final SR.
+
+## Real-World Stack-Bowls RECAP Dataset
+
+On 2026-09-03, the rollout labels at
+`/home/pnp/桌面/franka_deploy_0128_ee/franka_deploy/logs/recap_episode_labels.csv`
+were inspected through `amax@100.95.122.116 -> pnp@192.168.10.110`.
+
+Summary:
+
+- Task id: `stack_bowls_in_size_order_rc`
+- Task prompt: `Stack the three bowls in size order: the purple bowl first, then the beige bowl.`
+- Labeled episodes: 34
+- Success / failure: 22 / 12
+- Prepared LeRobot / RECAP rollout dataset:
+  `/home/pnp/桌面/franka_oral_data/stack_bowls_recap_rollout_rc`
+- Prepared frames: 196,579
+- Return sidecar: `meta/returns_fail300.parquet`
+- Return tag: `fail300`
+
+The dataset is a lightweight LeRobot v2.1 RC dataset with symlinked videos. It
+contains per-frame `is_success`, `state`, `actions`, `task`, `episode_index`,
+`frame_index`, and camera features `image`, `global_image`, `right_image`, and
+`wrist_image`.
+
+This dataset can be used alone for stack-bowls-specific RECAP training:
+
+1. Compute or reuse `returns_fail300.parquet`.
+2. Run value-model SFT with `data.tag=fail300` and `type=rollout`.
+3. Compute advantages with `advantage.returns_tag=fail300`.
+4. Run CFG policy training with the generated `data.advantage_tag`.
+
+See `docs/realworld_recap_stack_bowls.md` for concrete paths, commands, tags,
+and caveats.
 
 ## Notes
 

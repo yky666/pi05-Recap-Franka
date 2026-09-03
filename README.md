@@ -37,6 +37,8 @@ RLinf 推荐关注的日志指标是：
 - `docs/franka_cs_deployment.md`：amax 推理服务端 + pnp 机器人客户端的 C/S 部署步骤，可直接贴到飞书。
 - `docs/franka_5task_launch.md`：五个 Franka task 的 amax/pnp 启动命令和切换流程。
 - `docs/franka_recap_rollout_labeling.md`：pnp 端 rollout 保存路径、`is_success` 标注方式和 RECAP 数据准备。
+- `docs/realworld_recap_stack_bowls.md`：叠碗 recap rollout 数据集路径、格式、return tag 和四步训练命令。
+- `docs/feishu/recap_stack_bowls_feishu.md`：同一内容的飞书粘贴版。
 - `docs/UPSTREAM_RLINF_README.md`：原始 RLinf README 备份。
 - `scripts/franka/download_shuo_pi05_weights.sh`：下载师兄给的 Franka pi0.5 联合微调权重。
 - `evaluations/realworld/realworld_pnp_eval_pi05_sft_RTC.yaml`：单臂 Franka + OpenPI pi0.5 + RTC 测评模板。

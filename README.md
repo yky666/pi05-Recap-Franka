@@ -519,7 +519,7 @@ ws://192.168.10.114:33050
 pnp 机器上的 client 项目已核对：
 
 ```bash
-ssh pnp@192.168.10.110
+ssh pnp@192.168.10.112
 cd ~/桌面/franka_deploy_0128_ee/franka_deploy
 ```
 

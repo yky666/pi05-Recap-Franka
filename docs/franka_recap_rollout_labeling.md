@@ -13,7 +13,7 @@ https://rlinf.readthedocs.io/zh-cn/latest/rst_source/examples/embodied/recap.htm
 pnp 机器：
 
 ```text
-pnp@192.168.10.110
+pnp@192.168.10.112
 ```
 
 部署目录：
@@ -128,7 +128,7 @@ RECAP 后续最关键的是 `is_success`。如果只记录 SR 表格，不保存
 先把本仓库脚本拷到 pnp：
 
 ```bash
-scp scripts/franka/label_pnp_session.py pnp@192.168.10.110:/home/pnp/桌面/franka_deploy_0128_ee/franka_deploy/
+scp scripts/franka/label_pnp_session.py pnp@192.168.10.112:/home/pnp/桌面/franka_deploy_0128_ee/franka_deploy/
 ```
 
 在 pnp 上查看最新 session：

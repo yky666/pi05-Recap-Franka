@@ -9,7 +9,7 @@
 | 角色 | 机器 | 地址 | 说明 |
 | --- | --- | --- | --- |
 | 推理服务端 | amax | `192.168.10.114` | 加载 `pi05_base + full_weights.pt + norm_stats` |
-| 机器人客户端 | pnp | `192.168.10.110` | 运行 `franka_deploy_0128_ee/franka_deploy` |
+| 机器人客户端 | pnp | `192.168.10.112` | 运行 `franka_deploy_0128_ee/franka_deploy` |
 | WebSocket 端口 | amax | `33050` | pnp client 连接 `ws://192.168.10.114:33050` |
 
 ## 2. 权重和资产路径
@@ -153,7 +153,7 @@ tmux kill-session -t pi05_front2
 登录 pnp：
 
 ```bash
-ssh pnp@192.168.10.110
+ssh pnp@192.168.10.112
 ```
 
 进入 client 项目：
